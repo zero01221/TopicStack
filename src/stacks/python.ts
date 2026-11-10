@@ -15,7 +15,7 @@ import {
 
 /** Python 依赖清单骨架：每行符合「名称==版本」格式，版本以占位符注入。 */
 const REQUIREMENTS_TEMPLATE = `# 依赖清单：版本由建议默认值表统一注入
-fastapi=={{versions.framework}}
+fastapi=={{deps.frameworkPin}}
 uvicorn=={{deps.uvicorn}}
 mysql-connector-python=={{deps.mysqlDriver}}
 pydantic=={{deps.pydantic}}

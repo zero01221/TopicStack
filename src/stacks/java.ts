@@ -23,12 +23,12 @@ const POM_TEMPLATE = `<project>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
-      <version>{{versions.framework}}</version>
+      <version>{{deps.frameworkPin}}</version>
     </dependency>
     <dependency>
       <groupId>com.mysql</groupId>
       <artifactId>mysql-connector-j</artifactId>
-      <version>{{versions.db}}</version>
+      <version>{{deps.dbPin}}</version>
     </dependency>
   </dependencies>
 </project>

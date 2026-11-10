@@ -1,0 +1,138 @@
+{
+  "checkId": "CHK-F07-01",
+  "feature": "F07",
+  "stack": "java/python",
+  "items": [
+    {
+      "id": "F07-01",
+      "criterion": "文件映射含 frontend/** 与 backend/**",
+      "anchor": "parser",
+      "expected": "至少各有一个前端与后端交付物，且包含讲解材料",
+      "actual": "前端文件=5, 后端文件=5, 讲解材料=true",
+      "verdict": "PASS",
+      "evidence": [
+        "交付物路径: docs/技术文档.md | frontend/package.json | frontend/index.html | frontend/src/main.tsx | frontend/src/api.ts | frontend/src/LoginForm.tsx | backend/pom.xml | backend/src/main/java/Application.java | backend/src/main/java/controller/Controller.java | backend/src/main/java/service/Service.java | backend/src/main/java/mapper/Mapper.java | docs/讲解材料.md"
+      ]
+    },
+    {
+      "id": "F07-02",
+      "criterion": "每个类 / public 方法 / 核心条件分支含中文注释块且含「做什么」「为什么」",
+      "anchor": "invariant",
+      "expected": "每个源码文件中两个关键词的出现次数均 >= 结构标记数",
+      "actual": "源码文件=7, 不达标项=无",
+      "verdict": "PASS",
+      "evidence": [
+        "frontend/src/main.tsx: 结构标记=1",
+        "frontend/src/api.ts: 结构标记=0",
+        "frontend/src/LoginForm.tsx: 结构标记=0",
+        "backend/src/main/java/Application.java: 结构标记=3",
+        "backend/src/main/java/controller/Controller.java: 结构标记=3",
+        "backend/src/main/java/service/Service.java: 结构标记=3",
+        "backend/src/main/java/mapper/Mapper.java: 结构标记=3"
+      ]
+    },
+    {
+      "id": "F07-03",
+      "criterion": "docs/讲解材料.md 每个锚点 file 与 symbol 均存在于同次输出",
+      "anchor": "invariant",
+      "expected": "锚点集合非空；每个 file 在文件树中、每个 symbol 存在于该文件内容；文档含常见追问要点",
+      "actual": "锚点数=4, 问题=无, 追问要点=true",
+      "verdict": "PASS",
+      "evidence": [
+        "frontend/src/api.ts#login",
+        "frontend/src/LoginForm.tsx#username",
+        "docs/技术文档.md#技术栈分析",
+        "backend/app/main.py#start"
+      ]
+    },
+    {
+      "id": "F07-04",
+      "criterion": "切换 java / python 产出不同的后端文件与依赖配置",
+      "anchor": "parser",
+      "expected": "两栈依赖文件名不同、源码扩展名不同、后端内容集合不相等",
+      "actual": "Java依赖=pom.xml, Python依赖=requirements.txt, java源码=true, py源码=true, 内容不同=true",
+      "verdict": "PASS",
+      "evidence": [
+        "Java 后端路径: backend/pom.xml, backend/src/main/java/Application.java, backend/src/main/java/controller/Controller.java, backend/src/main/java/service/Service.java, backend/src/main/java/mapper/Mapper.java",
+        "Python 后端路径: backend/requirements.txt, backend/app/main.py, backend/app/routers/Routers.py, backend/app/services/Services.py, backend/app/repositories/Repositories.py"
+      ]
+    },
+    {
+      "id": "F07-05",
+      "criterion": "独立锚点 B：生成产物 TS/TSX 语法解析无诊断、XML 配对、依赖清单行格式通过",
+      "anchor": "parser",
+      "expected": "TypeScript compiler API / XML 标签配对 / 行格式三类通用解析器判定",
+      "actual": "TS/TSX 文件=3, 语法诊断=0, XML 配对=true, 依赖行合法=true",
+      "verdict": "PASS",
+      "evidence": [
+        "诊断: 无",
+        "requirements 内容行=4"
+      ]
+    },
+    {
+      "id": "F07-06",
+      "criterion": "静态断言 scripts/check.mjs 未调用任何编译 / 运行 / 安装命令",
+      "anchor": "invariant",
+      "expected": "判据入口不加载子进程模块、不出现命令执行调用（明确不编译、不执行生成产物）",
+      "actual": "可执行代码禁用词元命中=无, 模块白名单通过=true",
+      "verdict": "PASS",
+      "evidence": [
+        "判据入口导入模块: node:fs, node:crypto, node:path, node:url, typescript",
+        "扫描字符数=10474"
+      ]
+    },
+    {
+      "id": "F07-07",
+      "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+      "anchor": "parser",
+      "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "锁文件 v3=true, 已安装快照=true",
+        "build/lint 成功戳与 dist 内容哈希一致=true",
+        "前序功能点回归记录全 PASS: F01,F02,F03,F04,F05,F06 => true",
+        "本点测试文件齐备且无跳过标记: true"
+      ]
+    }
+  ],
+  "declaredChecks": 7,
+  "evaluatedChecks": 7,
+  "unknownCount": 0,
+  "evidence": [
+    {
+      "path": "package.json",
+      "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+    },
+    {
+      "path": "checks/runs.json",
+      "sha256": "fd3251754c486e99d0c134c115fccb396abbb4b2db03ffc27572d0cd8ea1c467"
+    },
+    {
+      "path": "tests/invariants.ts",
+      "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
+    },
+    {
+      "path": "tests/F07.test.ts",
+      "sha256": "f664ff43c539e3cc33572d7e1e2c29d7f375ba78ff8d80a7d591a830ea6cbad2"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "sha256": "77823f3cf8cbe29e496c12d7cb1c2c45bfb1cacbe9ecb3328dc942f27053f085"
+    },
+    {
+      "path": "src/types.ts",
+      "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+    }
+  ],
+  "verdict": "PASS",
+  "createdAt": "2026-11-10T04:12:35.533Z"
+}

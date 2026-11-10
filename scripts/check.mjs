@@ -1676,6 +1676,225 @@ async function f06Items() {
   return items;
 }
 
+/** 剥掉注释与字符串字面量，只保留可执行代码，供静态命令扫描使用。 */
+function stripQuotedText(source) {
+  return source
+    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+    .replace(/`(?:[^`\\]|\\.)*`/g, '``')
+    .replace(/\/\/[^\n]*/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+/** 用 TypeScript compiler API 对生成产物做语法解析，返回诊断文本列表。 */
+function tsSyntaxDiagnostics(code, fileName) {
+  const output = ts.transpileModule(code, {
+    fileName,
+    reportDiagnostics: true,
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+    },
+  });
+  return (output.diagnostics ?? [])
+    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, ' '));
+}
+
+/** 源码结构标记计数：类、公开方法、条件分支。 */
+function countStructureMarkers(content) {
+  const patterns = [
+    /public\s+class\b/g,
+    /public\s+\w+\s+\w+\s*\(/g,
+    /\bif\s*\(/g,
+    /^\s*def\s+\w+\s*\(/gm,
+  ];
+  return patterns.reduce((sum, pattern) => sum + (content.match(pattern) ?? []).length, 0);
+}
+
+/** F07：源码、中文注释与讲解材料的七条判据。 */
+async function f07Items() {
+  const items = [];
+  const generator = await importTs('src/generate.ts');
+  const inv = await importTs('tests/invariants.ts');
+  const baseline = engineeringBaseline('F07', ['F01', 'F02', 'F03', 'F04', 'F05', 'F06']);
+  const javaInput = await standardGenerateInput(inv.F06_EXPECTED.sampleTitle);
+  const pythonInput = {
+    config: (await importTs('src/project.ts')).normalize({
+      title: inv.F06_EXPECTED.sampleTitle,
+      stackChoice: 'python',
+    }).config,
+    features: javaInput.features,
+  };
+
+  items.push(await safeItem(
+    'F07-01',
+    '文件映射含 frontend/** 与 backend/**',
+    'parser',
+    '至少各有一个前端与后端交付物，且包含讲解材料',
+    async () => {
+      const paths = generator.generate(javaInput).files.map((file) => file.path);
+      const front = paths.filter((path) => path.startsWith('frontend/'));
+      const back = paths.filter((path) => path.startsWith('backend/'));
+      return {
+        ok: front.length > 0 && back.length > 0
+          && paths.includes(inv.F07_EXPECTED.explainerPath),
+        actual: `前端文件=${front.length}, 后端文件=${back.length}, 讲解材料=${paths.includes(inv.F07_EXPECTED.explainerPath)}`,
+        evidence: [`交付物路径: ${paths.join(' | ')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F07-02',
+    '每个类 / public 方法 / 核心条件分支含中文注释块且含「做什么」「为什么」',
+    'invariant',
+    '每个源码文件中两个关键词的出现次数均 >= 结构标记数',
+    async () => {
+      const result = generator.generate(javaInput);
+      const sources = result.files.filter((file) => /\.(java|py|ts|tsx|js)$/.test(file.path));
+      const problems = [];
+      for (const source of sources) {
+        const markers = Math.max(countStructureMarkers(source.content), 1);
+        for (const keyword of inv.F07_EXPECTED.commentKeywords) {
+          const count = (source.content.match(new RegExp(keyword, 'g')) ?? []).length;
+          if (count < markers) {
+            problems.push(`${source.path}:${keyword}=${count}<${markers}`);
+          }
+        }
+      }
+      return {
+        ok: sources.length > 0 && problems.length === 0,
+        actual: `源码文件=${sources.length}, 不达标项=${problems.join(' | ') || '无'}`,
+        evidence: sources.map((file) => `${file.path}: 结构标记=${countStructureMarkers(file.content)}`),
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F07-03',
+    'docs/讲解材料.md 每个锚点 file 与 symbol 均存在于同次输出',
+    'invariant',
+    '锚点集合非空；每个 file 在文件树中、每个 symbol 存在于该文件内容；文档含常见追问要点',
+    async () => {
+      const result = generator.generate(pythonInput);
+      const doc = generator.findFile(result.files, inv.F07_EXPECTED.explainerPath) ?? '';
+      const problems = [];
+      for (const anchor of result.explainerAnchors) {
+        const target = generator.findFile(result.files, anchor.file);
+        if (target === undefined) {
+          problems.push(`缺文件 ${anchor.file}`);
+        } else if (!target.includes(anchor.symbol)) {
+          problems.push(`缺符号 ${anchor.file}#${anchor.symbol}`);
+        }
+        if (!doc.includes(anchor.file) || !doc.includes(anchor.symbol)) {
+          problems.push(`文档未列出 ${anchor.file}#${anchor.symbol}`);
+        }
+      }
+      return {
+        ok: result.explainerAnchors.length > 0 && problems.length === 0
+          && doc.includes(inv.F07_EXPECTED.followUpHeading),
+        actual: `锚点数=${result.explainerAnchors.length}, 问题=${problems.join(' | ') || '无'}, 追问要点=${doc.includes(inv.F07_EXPECTED.followUpHeading)}`,
+        evidence: result.explainerAnchors.map((anchor) => `${anchor.file}#${anchor.symbol}`),
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F07-04',
+    '切换 java / python 产出不同的后端文件与依赖配置',
+    'parser',
+    '两栈依赖文件名不同、源码扩展名不同、后端内容集合不相等',
+    async () => {
+      const java = generator.generate(javaInput);
+      const python = generator.generate(pythonInput);
+      const jp = java.files.map((file) => file.path);
+      const pp = python.files.map((file) => file.path);
+      const javaBackend = java.files.filter((file) => file.path.startsWith('backend/'))
+        .map((file) => file.content).join('\n');
+      const pythonBackend = python.files.filter((file) => file.path.startsWith('backend/'))
+        .map((file) => file.content).join('\n');
+      const ok = jp.includes('backend/pom.xml')
+        && pp.includes('backend/requirements.txt')
+        && jp.some((path) => path.endsWith('.java'))
+        && pp.some((path) => path.endsWith('.py'))
+        && javaBackend !== pythonBackend;
+      return {
+        ok,
+        actual: `Java依赖=pom.xml, Python依赖=requirements.txt, java源码=${jp.some((p) => p.endsWith('.java'))}, py源码=${pp.some((p) => p.endsWith('.py'))}, 内容不同=${javaBackend !== pythonBackend}`,
+        evidence: [`Java 后端路径: ${jp.filter((p) => p.startsWith('backend/')).join(', ')}`,
+          `Python 后端路径: ${pp.filter((p) => p.startsWith('backend/')).join(', ')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F07-05',
+    '独立锚点 B：生成产物 TS/TSX 语法解析无诊断、XML 配对、依赖清单行格式通过',
+    'parser',
+    'TypeScript compiler API / XML 标签配对 / 行格式三类通用解析器判定',
+    async () => {
+      const result = generator.generate(javaInput);
+      const tsFiles = result.files.filter((file) => /\.(ts|tsx)$/.test(file.path));
+      const diagnostics = tsFiles.flatMap((file) => tsSyntaxDiagnostics(file.content, file.path));
+      const pom = generator.findFile(result.files, 'backend/pom.xml') ?? '';
+      const xmlOk = pom.length > 0 && xmlTagsBalanced(pom);
+      const python = generator.generate(pythonInput);
+      const requirements = generator.findFile(python.files, 'backend/requirements.txt') ?? '';
+      const lines = requirementsLinesValid(requirements);
+      return {
+        ok: tsFiles.length > 0 && diagnostics.length === 0 && xmlOk && lines.ok,
+        actual: `TS/TSX 文件=${tsFiles.length}, 语法诊断=${diagnostics.length}, XML 配对=${xmlOk}, 依赖行合法=${lines.ok}`,
+        evidence: [`诊断: ${diagnostics.join(' | ') || '无'}`, `requirements 内容行=${lines.contentLines}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F07-06',
+    '静态断言 scripts/check.mjs 未调用任何编译 / 运行 / 安装命令',
+    'invariant',
+    '判据入口不加载子进程模块、不出现命令执行调用（明确不编译、不执行生成产物）',
+    async () => {
+      const selfSource = readText('scripts/check.mjs');
+      // 先剥掉注释与字符串字面量，只扫描可执行代码，避免命中判据描述文本。
+      const executable = stripQuotedText(selfSource);
+      const banned = [
+        'child' + '_process',
+        'exec' + 'Sync',
+        'spawn' + 'Sync',
+        'exec' + '(',
+        'spawn' + '(',
+        'git' + ' push',
+        'npm' + ' install',
+        'pip' + ' install',
+        'java' + 'c',
+      ];
+      const hits = banned.filter((token) => executable.includes(token));
+      const importedModules = [...selfSource.matchAll(/from\s+'([^']+)'/g)].map((entry) => entry[1]);
+      const importsOk = importedModules.length > 0
+        && importedModules.every((name) => ALLOWED_IMPORTS.includes(name));
+      return {
+        ok: hits.length === 0 && importsOk,
+        actual: `可执行代码禁用词元命中=${hits.join(',') || '无'}, 模块白名单通过=${importsOk}`,
+        evidence: [`判据入口导入模块: ${importedModules.join(', ')}`, `扫描字符数=${executable.length}`],
+      };
+    },
+  ));
+
+  items.push(makeItem(
+    'F07-07',
+    '构建 + 全量回归通过（工程侧机器证据）',
+    'parser',
+    'build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备',
+    baseline.ok ? '全部条件成立' : '存在未成立条件',
+    baseline.ok ? 'PASS' : 'FAIL',
+    baseline.evidence,
+  ));
+
+  return items;
+}
+
 /** 已实现功能点的判据构造器表；后续功能点逐个登记，未登记一律 BLOCKED。 */
 const FEATURE_BUILDERS = Object.freeze({
   F02: f02Items,
@@ -1683,6 +1902,7 @@ const FEATURE_BUILDERS = Object.freeze({
   F04: f04Items,
   F05: f05Items,
   F06: f06Items,
+  F07: f07Items,
 });
 
 const argument = process.argv[2] ?? '';
