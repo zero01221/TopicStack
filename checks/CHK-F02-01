@@ -1,0 +1,130 @@
+{
+  "checkId": "CHK-F02-01",
+  "feature": "F02",
+  "stack": "common",
+  "items": [
+    {
+      "id": "F02-01",
+      "criterion": "normalize({title}) 产出全部必填字段且 adoptedDefaults 非空",
+      "anchor": "parser",
+      "expected": "配置必填字段全覆盖 + adoptedDefaults 数量大于零",
+      "actual": "缺失字段=无, adoptedDefaults=14",
+      "verdict": "PASS",
+      "evidence": [
+        "实际配置字段: rawInput,title,constraints,stackId,versions,dataModel,auth,dirTree,commentPolicy,explainerAnchors,a11Docs,envBaseline",
+        "自动采用的默认值: versions.language,versions.framework,versions.db,versions.frontend,versions.node,stackId,constraints.hardRequirements,dataModel,auth,dirTree,commentPolicy,explainerAnchors,a11Docs,envBaseline"
+      ]
+    },
+    {
+      "id": "F02-02",
+      "criterion": "normalize(normalize(x)) === normalize(x)",
+      "anchor": "invariant",
+      "expected": "引用相等且深比较相等（幂等）",
+      "actual": "引用相等=true, 深比较=true",
+      "verdict": "PASS",
+      "evidence": [
+        "把规范化结果再次传入 normalize 应原样返回"
+      ]
+    },
+    {
+      "id": "F02-03",
+      "criterion": "派生字段 dirTree / auth.demoAccount / versions / commentPolicy 均可从 config 读出",
+      "anchor": "invariant",
+      "expected": "四个派生字段均存在且非空，版本字段数为五个",
+      "actual": "dirTree条目=7, 演示账号=admin, 版本字段=5, 注释策略=true",
+      "verdict": "PASS",
+      "evidence": [
+        "派生读取结果: {\"dirTree\":7,\"demoAccount\":\"admin\",\"versions\":5,\"commentPolicy\":true}"
+      ]
+    },
+    {
+      "id": "F02-04",
+      "criterion": "rawInput.title 与规范化后 title 分别可取且 rawInput 未被改写",
+      "anchor": "rawInput",
+      "expected": "rawInput 保留原始空白串并冻结；title 为折叠空白后的值",
+      "actual": "rawInput原样=true, title规范化=true, 锚点冻结=true",
+      "verdict": "PASS",
+      "evidence": [
+        "原始题目: \"  基于 Java 的  图书馆 管理系统  \"",
+        "规范化题目: \"基于 Java 的 图书馆 管理系统\"",
+        "versionInputs 冻结: true"
+      ]
+    },
+    {
+      "id": "F02-05",
+      "criterion": "normalize({}) 明确拒绝（必填缺失自动阻断）",
+      "anchor": "parser",
+      "expected": "抛出明确异常且异常信息包含必填字段名",
+      "actual": "拒绝=true, 信息=\"配置规范化失败：必填字段 title 缺失，请提供毕设题目\"",
+      "verdict": "PASS",
+      "evidence": [
+        "必填缺失时不得静默产出半成品"
+      ]
+    },
+    {
+      "id": "F02-06",
+      "criterion": "静态扫描 src/project.ts 无版本号 / 账号字面量",
+      "anchor": "invariant",
+      "expected": "源码字符串字面量中不含版本号、版本串或演示账号；且引用建议默认值表",
+      "actual": "命中字面量=无, 引用建议默认值表=true",
+      "verdict": "PASS",
+      "evidence": [
+        "静态扫描目标: src/project.ts (7043 字符)",
+        "规则: 版本号 / 版本串 / 演示账号 / 账号口令"
+      ]
+    },
+    {
+      "id": "F02-07",
+      "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+      "anchor": "parser",
+      "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "锁文件 v3=true, 已安装快照=true",
+        "build/lint 成功戳与 dist 内容哈希一致=true",
+        "前序功能点回归记录全 PASS: F01 => true",
+        "本点测试文件齐备且无跳过标记: true"
+      ]
+    }
+  ],
+  "declaredChecks": 7,
+  "evaluatedChecks": 7,
+  "unknownCount": 0,
+  "evidence": [
+    {
+      "path": "package.json",
+      "sha256": "4a2c6e2247fbc93a3779343c1771b4ffa6efcc898fc79ca56e9dc5f663d05c61"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+    },
+    {
+      "path": "checks/runs.json",
+      "sha256": "2bb6520287eebefa08d413bd64cda95b0f1833377d9d8e0abb164cbbf5d65b6d"
+    },
+    {
+      "path": "tests/invariants.ts",
+      "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+    },
+    {
+      "path": "tests/F02.test.ts",
+      "sha256": "92e635febcbbfcc83777d1f20570872b3e22bb27e402275b4b4bd8a4dac0d240"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "sha256": "ea6e9b9194165b0631be193ead95e5118c6ad55e8eff416719fc8fc8074202f3"
+    },
+    {
+      "path": "src/types.ts",
+      "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+    }
+  ],
+  "verdict": "PASS",
+  "createdAt": "2026-11-10T03:32:47.465Z"
+}

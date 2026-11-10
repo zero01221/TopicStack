@@ -30,7 +30,7 @@
       "evidence": [
         "dist/index.html 存在: true",
         "根容器 id=\"root\": true",
-        "构建后 JS 资源: /assets/index-D6ktK11F.js",
+        "构建后 JS 资源: /assets/index-Bpbg6TO1.js",
         "资源文件实际存在: true"
       ]
     },
@@ -80,7 +80,7 @@
       "actual": "期望值外置、无外部加载、字面常量与助手齐备",
       "verdict": "PASS",
       "evidence": [
-        "静态扫描目标: tests/invariants.ts (3638 字符)",
+        "静态扫描目标: tests/invariants.ts (5044 字符)",
         "禁止引用命中: 无",
         "外部模块加载: false",
         "字面常量数组存在: true",
@@ -106,15 +106,15 @@
     },
     {
       "path": "dist/index.html",
-      "sha256": "4a6750dbbc4d039b03e69796c0ca9f253dbb7d9b97510ef16cb960abd7bf0faa"
+      "sha256": "e42b4f4f7282dac1182a6d997e54dad9c5a6a18fac952222323c8d550ddfbd21"
     },
     {
       "path": "checks/runs.json",
-      "sha256": "4f06ff6ebe5a8238c0b4f95faf95250a53b5a76bf44b2be66d4638637db4e420"
+      "sha256": "2bb6520287eebefa08d413bd64cda95b0f1833377d9d8e0abb164cbbf5d65b6d"
     },
     {
       "path": "tests/invariants.ts",
-      "sha256": "307d920972783a847c4454b214d2112f8fa1b9da63699c686a6987c3a17e3067"
+      "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
     },
     {
       "path": "tests/F01.test.ts",
@@ -122,9 +122,9 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "1c4f6f82f4e75997538932d051a4ee580c749e47158452d8ba6cac051daf1aa3"
+      "sha256": "ea6e9b9194165b0631be193ead95e5118c6ad55e8eff416719fc8fc8074202f3"
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T03:11:52.544Z"
+  "createdAt": "2026-11-10T03:32:48.275Z"
 }

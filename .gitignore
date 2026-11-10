@@ -4,6 +4,9 @@ dist/
 .vite/
 coverage/
 
+# 判据入口转译缓存（由 scripts/check.mjs 生成，不入库）
+.tscache/
+
 # 本地环境文件与日志
 .env
 .env.*

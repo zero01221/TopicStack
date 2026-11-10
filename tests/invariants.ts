@@ -1,10 +1,11 @@
 /**
- * 固有属性断言集（F01 建立，F02~F10 复用）。
+ * 固有属性断言集（F01 建立，F02~F05 增量复用）。
  *
  * 设计约束（与派生源无关的独立锚点）：
  * 1. 本文件所有期望值均为硬编码字面常量，不读取任何派生配置，也不调用渲染函数；
  * 2. 本文件不加载任何外部模块，保证断言集自身可独立审阅；
  * 3. 即使上游数据模型整体写错，本断言集仍能暴露结构层面的偏差。
+ * 4. F02~F05 新增的期望值同样保持字面常量，判据入口与测试各自独立引用。
  */
 
 /** 判定结果只允许三种取值；UNKNOWN 由调用方一律按失败处理。 */
@@ -41,6 +42,49 @@ export const EXPECTED = {
   declaredChecks: 6,
   nodeEngineMajor: '20',
   forbiddenPlaceholder: '{{',
+} as const;
+
+/** F02：配置单一数据源的固有属性期望值（全部字面常量）。 */
+export const F02_EXPECTED = {
+  declaredChecks: 7,
+  requiredInputFields: ['title'],
+  requiredConfigFields: [
+    'rawInput', 'title', 'constraints', 'stackId', 'versions', 'dataModel',
+    'auth', 'dirTree', 'commentPolicy', 'explainerAnchors', 'a11Docs', 'envBaseline',
+  ],
+  versionFieldCount: 5,
+} as const;
+
+/** F03：配置输入层的固有属性期望值（全部字面常量）。 */
+export const F03_EXPECTED = {
+  declaredChecks: 6,
+  stepNames: ['input', 'analysis', 'techdoc', 'deliverables', 'history'],
+  fixButtonLabel: '一键采用建议值',
+  autoFixLabel: '自动修复',
+  forbiddenStepWords: ['confirm', 'review', 'approve', 'pending'],
+} as const;
+
+/** F04：功能点分析的固有属性期望值（全部字面常量）。 */
+export const F04_EXPECTED = {
+  declaredChecks: 7,
+  idPattern: /^FP-\d{3}$/,
+  minRecommended: 5,
+  fallbackHint: '建议手动调整',
+  sampleTitle: '基于 Java 的图书馆管理系统与订单预约平台',
+} as const;
+
+/** F05：双栈模板注册表的固有属性期望值（全部字面常量）。 */
+export const F05_EXPECTED = {
+  declaredChecks: 7,
+  stackIds: ['java', 'python'],
+  requiredTemplateFields: [
+    'stackId', 'label', 'dirTree', 'depsConfig', 'frontendCommon', 'backendFragments',
+    'sqlDialect', 'readmeBaseline', 'envCheckItems', 'commentPolicy',
+    'explainerAnchors', 'suggestedVersions',
+  ],
+  sqlDisabledKeywords: ['OVER (', 'WITH ... AS', 'JSON_TABLE'],
+  mysqlVersions: ['MySQL 5.7', 'MySQL 8.0'],
+  mockStackId: 'newstack',
 } as const;
 
 /** 未知即失败：任何非 PASS / FAIL 的取值都归一为 UNKNOWN，交由调用方计为失败。 */
