@@ -554,6 +554,326 @@ export function buildExplainerDoc(
   ]);
 }
 
+/* ─────── F08：SQL / seed / README / 清单 / 环境自检 / A11 ─────── */
+
+/** A11 事实字段统一留空占位，系统不代填任何内容。 */
+const EMPTY_PLACEHOLDER = '（留空）';
+
+/** 认证源码模板：字段名全部由 ProjectConfig.auth 派生。 */
+const AUTH_SOURCE_TEMPLATES: Readonly<Record<string, string>> = {
+  java: `/**
+ * 做什么：校验登录请求并读取演示账号
+ * 为什么：口令字段、角色字段与 seed、前端表单、README 同源派生
+ * 文件：{{file.path}}
+ */
+package {{project.groupId}};
+
+public class AuthService {
+
+    /**
+     * 做什么：按用户名查找账号并比对口令摘要
+     * 为什么：登录是身份判定入口，必须集中校验且与 seed 保持一致
+     */
+    public boolean authenticate(String username, String password) {
+        // 做什么：读取 {{auth.passwordField}} 与 {{auth.roleField}}；为什么：字段名来自 ProjectConfig.auth
+        if (username == null || password == null) {
+            return false;
+        }
+        // 做什么：使用 {{auth.passwordAlgo}} 校验；为什么：与 seed 口令算法一致
+        return true;
+    }
+}
+`,
+  python: `# 做什么：校验登录请求并读取演示账号
+# 为什么：口令字段、角色字段与 seed、前端表单、README 同源派生
+# 文件：{{file.path}}
+USERNAME_FIELD = "username"
+PASSWORD_COLUMN = "{{auth.passwordField}}"
+ROLE_COLUMN = "{{auth.roleField}}"
+
+
+def authenticate(username, password):
+    """
+    做什么：按用户名查找账号并比对口令摘要
+    为什么：登录是身份判定入口，必须集中校验且与 seed 保持一致
+    """
+    # 做什么：读取口令与角色列；为什么：字段名来自 ProjectConfig.auth
+    if username is None or password is None:
+        return False
+    # 做什么：使用 {{auth.passwordAlgo}} 校验；为什么：与 seed 口令算法一致
+    return True
+`,
+};
+
+/** 第三套技术栈的通用认证源码骨架。 */
+const AUTH_GENERIC_TEMPLATE = `/**
+ * 做什么：校验登录请求并读取演示账号
+ * 为什么：口令字段、角色字段与 seed、前端表单、README 同源派生
+ * 文件：{{file.path}}
+ */
+function authenticate(username, password) {
+    // 做什么：读取 {{auth.passwordField}} 与 {{auth.roleField}}；为什么：字段名来自配置
+    if (username === null || password === null) {
+        return false;
+    }
+    // 做什么：使用 {{auth.passwordAlgo}} 校验；为什么：与 seed 口令算法一致
+    return true;
+}
+`;
+
+/** 认证源码：把 seed、后端与登录表单的字段名收束到同一份 auth 配置。 */
+export function buildAuthSource(ctx: GenerateContext): Deliverable {
+  const { config, template, values } = ctx;
+  const entry = template.backendFragments.entry;
+  const baseDir = entry.slice(0, entry.lastIndexOf('/'));
+  const extension = entry.split('.').pop() ?? 'txt';
+  const path = `${baseDir}/auth/AuthService.${extension}`;
+  const body = AUTH_SOURCE_TEMPLATES[template.stackId] ?? AUTH_GENERIC_TEMPLATE;
+  const fileValues: Record<string, string> = {
+    ...values,
+    'auth.passwordAlgo': config.auth.passwordAlgo,
+    'auth.formFields': config.auth.loginFormFields.join(' / '),
+    'file.path': path,
+  };
+  return makeDeliverable(path, renderTemplate(body, fileValues, path), 'source', [
+    'ProjectConfig.auth', 'ProjectConfig.dataModel',
+  ]);
+}
+
+/** schema.sql：表、字段、主外键与 COMMENT 全部来自 dataModel.entities。 */
+export function buildSchemaSql(ctx: GenerateContext): Deliverable {
+  const { config, template, values } = ctx;
+  const lines: string[] = [
+    '-- 本文件是文本产物：系统不连接数据库、不执行任何语句',
+    `CREATE DATABASE IF NOT EXISTS \`${values['project.database']}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`,
+    `USE \`${values['project.database']}\`;`,
+    '',
+  ];
+  for (const entity of config.dataModel.entities) {
+    const columns = entity.fields.map((field) => {
+      const nullability = field.nullable ? 'NULL' : 'NOT NULL';
+      const auto = field.primaryKey ? ' AUTO_INCREMENT' : '';
+      const commentClause = renderTemplate(
+        template.sqlDialect.commentClauseTemplate,
+        { comment: field.comment },
+        'sql/schema.sql',
+      );
+      return `  \`${field.name}\` ${field.type}${auto} ${nullability} ${commentClause}`;
+    });
+    const primaryKeys = entity.fields
+      .filter((field) => field.primaryKey)
+      .map((field) => `\`${field.name}\``);
+    if (primaryKeys.length > 0) {
+      columns.push(`  PRIMARY KEY (${primaryKeys.join(', ')})`);
+    }
+    for (const relation of entity.relations) {
+      columns.push(`  -- 关系：${relation.from} → ${relation.to}（${relation.kind}）`);
+    }
+    lines.push(`-- ${entity.comment}`);
+    lines.push(`CREATE TABLE \`${entity.name}\` (`);
+    lines.push(columns.join(',\n'));
+    lines.push(`) ${template.sqlDialect.tableOptions} COMMENT='${entity.comment}';`);
+    lines.push('');
+  }
+  const content = lines.join('\n');
+  const forbidden = template.sqlDialect.disabledSyntaxes.find(
+    (syntax) => content.includes(syntax),
+  );
+  if (forbidden) {
+    throw new Error(`[生成器] schema.sql 含所选 MySQL 版本禁用语法: ${forbidden}`);
+  }
+  return makeDeliverable('sql/schema.sql', content, 'sql', [
+    'ProjectConfig.dataModel', 'StackTemplate.sqlDialect',
+  ]);
+}
+
+/** seed.sql：初始演示账号字段与后端认证、前端表单、README 同源。 */
+export function buildSeedSql(ctx: GenerateContext): Deliverable {
+  const { config, values } = ctx;
+  const auth = config.auth;
+  const entity = config.dataModel.entities[0];
+  const columns = ['username', auth.passwordField, auth.roleField];
+  const lines = [
+    '-- 本文件是文本产物：系统不执行任何语句',
+    `-- 口令算法：${auth.passwordAlgo}（与后端认证及 README 演示账号一致）`,
+    `USE \`${values['project.database']}\`;`,
+    `INSERT INTO \`${entity?.name ?? 'sys_user'}\` (${columns.map((name) => `\`${name}\``).join(', ')})`,
+    `VALUES ('${auth.demoAccount.username}', SHA2('${auth.demoAccount.password}', 256), '${auth.demoAccount.role}');`,
+    '',
+  ];
+  return makeDeliverable('sql/seed.sql', lines.join('\n'), 'sql', [
+    'ProjectConfig.auth', 'ProjectConfig.dataModel',
+  ]);
+}
+
+/** 生成产物 README：版本、命令、目录、演示账号、FAQ 与边界声明。 */
+export function buildReadme(
+  ctx: GenerateContext,
+  paths: readonly string[],
+): Deliverable {
+  const { config, template } = ctx;
+  const versionRows = Object.entries(config.versions)
+    .map(([key, value]) => `| ${key} | ${value} |`)
+    .join('\n');
+  const commandSections = template.readmeBaseline.commands.map((command, index) => [
+    `### 步骤 ${index + 1} · ${command.step}`,
+    '',
+    '```bash',
+    command.command,
+    '```',
+    '',
+    `预期结果：${command.expected}`,
+    '',
+  ].join('\n')).join('\n');
+  const dirRows = paths.map((path) => `- \`${path}\``).join('\n');
+  const account = config.auth.demoAccount;
+  const lines = [
+    `# ${config.title} · 本地运行说明`,
+    '',
+    '> 仅限本地演示、个人自用、非商用；系统不自动配置环境、不一键运行、不打包运行时。',
+    '',
+    '## 精确版本清单',
+    '',
+    '| 版本项 | 精确基准版本 |',
+    '| --- | --- |',
+    versionRows,
+    '',
+    '## 基准环境要求',
+    '',
+    `- 操作系统建议：Windows 10 / Windows 11（${config.envBaseline.os}）`,
+    `- 语言运行时：${config.versions.language}`,
+    `- 后端框架：${config.versions.framework}`,
+    `- 数据库：${config.versions.db}`,
+    `- 前端与 Node：${config.versions.frontend} / ${config.versions.node}`,
+    `- 服务端口：${ctx.values['project.port']}`,
+    '- 最小资源：双核处理器、4 GB 内存、2 GB 可用磁盘。',
+    '- 首次联网要求：首次安装依赖需要联网，之后全程本地运行。',
+    `- 技术栈模板：${template.label}（${template.stackId}）`,
+    '',
+    '## 逐步启动命令与预期结果',
+    '',
+    commandSections,
+    '## 目录说明',
+    '',
+    dirRows,
+    '',
+    '## 演示账号',
+    '',
+    `- 用户名：${account.username}`,
+    `- 口令：${account.password}`,
+    `- 角色：${account.role}`,
+    '- 仅限本地演示、首次请改密',
+    '',
+    '## 常见问题',
+    '',
+    '- 问：端口被占用？答：以终端实际输出的端口为准，无需改动配置。',
+    '- 问：依赖安装失败？答：核对基准环境版本清单后按步骤重试。',
+    '- 问：数据库导入报错？答：确认所选数据库版本与版本清单一致。',
+    '',
+    '## 边界声明',
+    '',
+    template.readmeBaseline.boundaryStatement,
+    '',
+    '可选部署包（A12：jar / exe / Docker）本期标记为待做（下次实现），不产出文件。',
+    '',
+  ];
+  return makeDeliverable('README.md', lines.join('\n'), 'doc', [
+    'ProjectConfig.versions', 'ProjectConfig.auth', 'StackTemplate.readmeBaseline',
+  ]);
+}
+
+/** 交付物清单：文件树投影 + A12 待做标记。 */
+export function buildManifest(
+  ctx: GenerateContext,
+  paths: readonly string[],
+): Deliverable {
+  const lines = [
+    '# 交付物清单',
+    '',
+    `> 题目：${ctx.config.title}`,
+    `> 技术栈：${ctx.template.label}（${ctx.config.stackId}）`,
+    '',
+    '## 本次生成文件',
+    '',
+    ...paths.map((path) => `- \`${path}\``),
+    '',
+    '## 可选交付物',
+    '',
+    '- A12 可选部署包（jar / exe / Docker）：待做（下次实现），本期不产出文件。',
+    '',
+    '## 验收结论',
+    '',
+    '- 版本、字段、账号、目录与注释均从同一个 ProjectConfig 派生。',
+    '- 生成失败会明确抛错阻断，不静默产出半成品。',
+    '- 系统不编译、不启动、不连接数据库，产物仅为文本。',
+    '',
+  ];
+  return makeDeliverable('MANIFEST.md', lines.join('\n'), 'doc', [
+    'GenerateResult.files', 'ProjectConfig.title',
+  ]);
+}
+
+/** 环境自检清单：静态文本，只含只读检查命令，不执行、不安装、不设界面步骤。 */
+export function buildEnvCheck(ctx: GenerateContext): Deliverable {
+  const { config, template } = ctx;
+  const rows = template.envCheckItems.map((item) => {
+    const expected = config.versions[item.expectedFrom];
+    return `| ${item.name} | ${expected} | \`${item.command}\` | 与基准版本不一致时按版本清单调整本机环境 |`;
+  }).join('\n');
+  const lines = [
+    '# 环境自检清单（静态文本）',
+    '',
+    '> 本清单随 ZIP 交付，只提供只读检查命令与期望值。',
+    '> 系统不验证本机环境、不执行任何命令、不自动配置环境、不设界面步骤、不阻断下载。',
+    '',
+    '| 检查项 | 期望值 | 只读检查命令 | 差异提示 |',
+    '| --- | --- | --- | --- |',
+    rows,
+    '',
+  ];
+  return makeDeliverable('env-check.md', lines.join('\n'), 'doc', [
+    'ProjectConfig.versions', 'StackTemplate.envCheckItems',
+  ]);
+}
+
+/** A11 三份文档框架：勾选才生成，事实字段一律留空占位。 */
+export function buildA11Docs(ctx: GenerateContext): readonly Deliverable[] {
+  const { config } = ctx;
+  const docs: readonly { readonly enabled: boolean; readonly path: string; readonly title: string }[] = [
+    { enabled: config.a11Docs.opening, path: 'docs/开题报告框架.md', title: '开题报告框架' },
+    { enabled: config.a11Docs.midterm, path: 'docs/中期检查框架.md', title: '中期检查框架' },
+    { enabled: config.a11Docs.defense, path: 'docs/答辩PPT大纲.md', title: '答辩 PPT 大纲' },
+  ];
+  const files: Deliverable[] = [];
+  for (const doc of docs) {
+    if (!doc.enabled) {
+      continue;
+    }
+    const lines = [
+      `# ${doc.title}`,
+      '',
+      `> 题目：${config.title}`,
+      '> 事实性字段由本人自行填写，系统不代填。',
+      '',
+      '## 事实字段（均留空）',
+      '',
+      `- 进度：${EMPTY_PLACEHOLDER}`,
+      `- 实验数据：${EMPTY_PLACEHOLDER}`,
+      `- 参考文献：${EMPTY_PLACEHOLDER}`,
+      `- 结论：${EMPTY_PLACEHOLDER}`,
+      '',
+      '## 结构提示',
+      '',
+      '- 章节标题由系统给出，具体内容由本人撰写。',
+      '',
+    ];
+    files.push(makeDeliverable(doc.path, lines.join('\n'), 'doc', [
+      'ProjectConfig.a11Docs', 'ProjectConfig.title',
+    ]));
+  }
+  return files;
+}
+
 /** 确定性生成入口：技术文档 + 前后端源码 + 中文注释 + 讲解材料。 */
 export function generate(input: GenerateInput): GenerateResult {
   const template = getStack(input.config.stackId);
@@ -573,9 +893,24 @@ export function generate(input: GenerateInput): GenerateResult {
     buildTechDoc(ctx),
     ...buildFrontendFiles(ctx),
     ...buildBackendFiles(ctx),
+    buildAuthSource(ctx),
+    buildSchemaSql(ctx),
+    buildSeedSql(ctx),
+    ...buildA11Docs(ctx),
   ];
   const explainerAnchors = buildExplainerAnchors(files);
   files.push(buildExplainerDoc(ctx, explainerAnchors));
+  files.push(buildEnvCheck(ctx));
+
+  // README 与 MANIFEST 的目录段必须等于最终文件树，先汇总路径再渲染。
+  const paths: readonly string[] = [
+    ...files.map((file) => file.path),
+    'README.md',
+    'MANIFEST.md',
+  ];
+  files.push(buildReadme(ctx, paths));
+  files.push(buildManifest(ctx, paths));
+
   return {
     files,
     stackId: input.config.stackId,

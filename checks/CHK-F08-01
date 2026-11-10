@@ -1,0 +1,164 @@
+{
+  "checkId": "CHK-F08-01",
+  "feature": "F08",
+  "stack": "java/python",
+  "items": [
+    {
+      "id": "F08-01",
+      "criterion": "SQL 词法解析无异常，CREATE TABLE >=1、字段含 COMMENT、无禁用语法",
+      "anchor": "parser",
+      "expected": "通用词法解析器对 schema / seed 无错误；建表语句、COMMENT 与禁用语法清单均满足",
+      "actual": "schema词法=true, seed词法=true, CREATE TABLE=1, COMMENT=true, 禁用语法命中=无",
+      "verdict": "PASS",
+      "evidence": [
+        "schema 字符数=459, seed 字符数=189",
+        "词法错误: 无"
+      ]
+    },
+    {
+      "id": "F08-02",
+      "criterion": "schema 表名 / 字段经解析结果与 ctx.dataModel 结构断言一致",
+      "anchor": "parser",
+      "expected": "解析出的表名集合与列名集合分别等于 dataModel.entities 的名称与字段",
+      "actual": "解析表=sys_user(id,username,password_hash,role), 问题=无",
+      "verdict": "PASS",
+      "evidence": [
+        "dataModel 实体数=1"
+      ]
+    },
+    {
+      "id": "F08-03",
+      "criterion": "seed 账号字段与 ctx.auth 及前端登录表单字段静态一致（替代登录冒烟）",
+      "anchor": "invariant",
+      "expected": "seed 含演示账号、口令列、角色列；后端认证源码含同名列；登录表单含 loginFormFields",
+      "actual": "{\"username\":true,\"password\":true,\"role\":true,\"passwordColumn\":true,\"roleColumn\":true,\"formFields\":true,\"algo\":true}",
+      "verdict": "PASS",
+      "evidence": [
+        "登录表单字段=username,password",
+        "口令算法=SHA-256"
+      ]
+    },
+    {
+      "id": "F08-04",
+      "criterion": "生成产物 README 中每个版本号 ∈ ctx.versions、每条命令 ∈ 栈模板命令表、目录段 = 实际文件树",
+      "anchor": "parser",
+      "expected": "三类集合差为零：版本、命令、目录路径",
+      "actual": "版本=3.2,8.0 违规=无; 命令=7/7 违规=无; 目录缺=无 多=无",
+      "verdict": "PASS",
+      "evidence": [
+        "ctx.versions: JDK 17 / Spring Boot 3.2.x / MySQL 8.0 / React 18 + Vite 5 / Node 20 LTS",
+        "栈模板命令表: mvn -q -DskipTests package | mysql -u root -p < sql/schema.sql | mysql -u root -p < sql/seed.sql | mvn spring-boot:run | npm run dev | 浏览器打开 http://localhost:5173 | 在登录页输入演示账号"
+      ]
+    },
+    {
+      "id": "F08-05",
+      "criterion": "JSON.parse（package.json / lockfile）通过",
+      "anchor": "parser",
+      "expected": "本系统 package.json、package-lock.json 与生成产物 frontend/package.json 均可解析",
+      "actual": "package.json=true, package-lock.json=true, 生成产物 package.json=true",
+      "verdict": "PASS",
+      "evidence": [
+        "package.json: JSON.parse OK",
+        "package-lock.json: JSON.parse OK"
+      ]
+    },
+    {
+      "id": "F08-06",
+      "criterion": "MANIFEST.md 覆盖全部产物且 A12 标「待做」、无产物文件",
+      "anchor": "invariant",
+      "expected": "清单路径集合 == 实际文件树；A12 待做标记存在；无 jar/exe/Docker 文件",
+      "actual": "清单条目=18, 实际文件=18, 缺失=无, A12待做=true, 部署产物=无",
+      "verdict": "PASS",
+      "evidence": [
+        "清单路径: docs/技术文档.md | frontend/package.json | frontend/index.html | frontend/src/main.tsx | frontend/src/api.ts | frontend/src/LoginForm.tsx | backend/pom.xml | backend/src/main/java/Application.java | backend/src/main/java/controller/Controller.java | backend/src/main/java/service/Service.java | backend/src/main/java/mapper/Mapper.java | backend/src/main/java/auth/AuthService.java | sql/schema.sql | sql/seed.sql | docs/讲解材料.md | env-check.md | README.md | MANIFEST.md"
+      ]
+    },
+    {
+      "id": "F08-07",
+      "criterion": "env-check.md 只含只读检查命令、不含安装动作与回填交互（静态文本产物）",
+      "anchor": "invariant",
+      "expected": "扫描无 install / apt / yum / pip / 回填 / 核对类交互描述；命令来自模板只读检查表",
+      "actual": "静态文本字符数=326, 违规词命中=无, 只读命令齐备=true",
+      "verdict": "PASS",
+      "evidence": [
+        "只读检查命令: java -version | mysql --version | node -v"
+      ]
+    },
+    {
+      "id": "F08-08",
+      "criterion": "A11 未勾选不生成三文档、勾选时生成且事实字段全部为空占位",
+      "anchor": "invariant",
+      "expected": "未勾选路径集合为空；勾选时三份文档均含四个事实字段且值为留空占位",
+      "actual": "未勾选泄漏=无, 勾选问题=无",
+      "verdict": "PASS",
+      "evidence": [
+        "事实字段: 进度,实验数据,参考文献,结论",
+        "占位符: （留空）"
+      ]
+    },
+    {
+      "id": "F08-09",
+      "criterion": "生成产物 README 含边界声明原句",
+      "anchor": "invariant",
+      "expected": "README 原样包含「本系统不验证你的本机环境；按基准环境准备即可按上述步骤运行」",
+      "actual": "原句存在=true",
+      "verdict": "PASS",
+      "evidence": [
+        "边界声明来自 tests/invariants.ts 硬编码字面常量"
+      ]
+    },
+    {
+      "id": "F08-10",
+      "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+      "anchor": "parser",
+      "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "锁文件 v3=true, 已安装快照=true",
+        "build/lint 成功戳与 dist 内容哈希一致=true",
+        "前序功能点回归记录全 PASS: F01,F02,F03,F04,F05,F06,F07 => true",
+        "本点测试文件齐备且无跳过标记: true"
+      ]
+    }
+  ],
+  "declaredChecks": 10,
+  "evaluatedChecks": 10,
+  "unknownCount": 0,
+  "evidence": [
+    {
+      "path": "package.json",
+      "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+    },
+    {
+      "path": "checks/runs.json",
+      "sha256": "fd3251754c486e99d0c134c115fccb396abbb4b2db03ffc27572d0cd8ea1c467"
+    },
+    {
+      "path": "tests/invariants.ts",
+      "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
+    },
+    {
+      "path": "tests/F08.test.ts",
+      "sha256": "97692b3a42572b52d0f0450ac8b4cf35459d72fa48335587ba0c2ae377a14310"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "sha256": "e1b95e63086a56e991ca0603dad4c35698ffffe4de549b8e8ffccfffd09c3664"
+    },
+    {
+      "path": "src/types.ts",
+      "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+    }
+  ],
+  "verdict": "PASS",
+  "createdAt": "2026-11-10T04:18:44.485Z"
+}

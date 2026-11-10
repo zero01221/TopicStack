@@ -5,9 +5,8 @@
  * src/types.ts 的建议默认值表，运行时由渲染器用 ctx.versions 注入。
  * 模板中的 {{...}} 占位符由后续功能点的渲染引擎统一替换。
  */
-import type { StackTemplate } from '../types';
+import type { EnvCheckItem, StackTemplate } from '../types';
 import {
-  ENV_CHECK_ITEMS,
   MYSQL_CAPABILITY_TABLE,
   SQL_DISABLED_SYNTAXES,
   SUGGESTED_DEFAULTS,
@@ -42,6 +41,13 @@ const FRONTEND_PACKAGE_TEMPLATE = `{
   "dependencies": { "react": "{{versions.frontend}}" }
 }
 `;
+
+/** Java 栈的只读环境检查项：只检查版本，不安装、不请回填。 */
+const JAVA_ENV_CHECK_ITEMS: readonly EnvCheckItem[] = [
+  { name: '语言运行时', command: 'java -version', expectedFrom: 'language' },
+  { name: '数据库', command: 'mysql --version', expectedFrom: 'db' },
+  { name: '前端运行时', command: 'node -v', expectedFrom: 'node' },
+];
 
 /** Java 栈模板表。 */
 export const javaTemplate: StackTemplate = {
@@ -94,10 +100,12 @@ export const javaTemplate: StackTemplate = {
       { step: '导入初始数据', command: 'mysql -u root -p < sql/seed.sql', expected: '演示账号可用' },
       { step: '启动后端', command: 'mvn spring-boot:run', expected: '服务在基准端口监听' },
       { step: '启动前端', command: 'npm run dev', expected: '浏览器可访问登录页' },
+      { step: '访问登录页', command: '浏览器打开 http://localhost:5173', expected: '登录表单正常显示' },
+      { step: '演示账号登录', command: '在登录页输入演示账号', expected: '登录成功并进入主界面' },
     ],
     boundaryStatement: '本系统不验证你的本机环境；按基准环境准备即可按上述步骤运行',
   },
-  envCheckItems: ENV_CHECK_ITEMS,
+  envCheckItems: JAVA_ENV_CHECK_ITEMS,
   commentPolicy: SUGGESTED_DEFAULTS.commentPolicy,
   explainerAnchors: SUGGESTED_DEFAULTS.explainerAnchors,
   suggestedVersions: SUGGESTED_DEFAULTS.versions,

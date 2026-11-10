@@ -1895,6 +1895,395 @@ async function f07Items() {
   return items;
 }
 
+/** SQL 词法解析：只做词法，不连库、不执行任何语句。 */
+function sqlLex(sql) {
+  const tokens = [];
+  const errors = [];
+  let depth = 0;
+  let index = 0;
+  while (index < sql.length) {
+    const char = sql[index];
+    if (char === '-' && sql[index + 1] === '-') {
+      while (index < sql.length && sql[index] !== '\n') {
+        index += 1;
+      }
+      continue;
+    }
+    if (/\s/.test(char)) {
+      index += 1;
+      continue;
+    }
+    if (char === "'" || char === '"' || char === '`') {
+      const quote = char;
+      let text = char;
+      index += 1;
+      let closed = false;
+      while (index < sql.length) {
+        text += sql[index];
+        if (sql[index] === quote) {
+          closed = true;
+          index += 1;
+          break;
+        }
+        index += 1;
+      }
+      if (!closed) {
+        errors.push(`引号未闭合: ${text.slice(0, 20)}`);
+      }
+      tokens.push({ type: 'quoted', text });
+      continue;
+    }
+    if (char === '(' || char === ')' || char === ',' || char === ';') {
+      if (char === '(') {
+        depth += 1;
+      }
+      if (char === ')') {
+        depth -= 1;
+        if (depth < 0) {
+          errors.push('括号多余闭合');
+        }
+      }
+      tokens.push({ type: 'punct', text: char });
+      index += 1;
+      continue;
+    }
+    let word = '';
+    while (index < sql.length && !/[\s(),;]/.test(sql[index])) {
+      word += sql[index];
+      index += 1;
+    }
+    tokens.push({ type: 'word', text: word });
+  }
+  if (depth !== 0) {
+    errors.push('括号未配对');
+  }
+  return { ok: errors.length === 0, tokens, errors };
+}
+
+/** 从 schema 文本解析表名与列名，用于与 dataModel.entities 做结构断言。 */
+function parseSchemaTables(sql) {
+  const tables = [];
+  let current = null;
+  for (const line of sql.split(/\r?\n/)) {
+    const open = line.match(/CREATE\s+TABLE\s+`([^`]+)`\s*\(/i);
+    if (open) {
+      current = { name: open[1], columns: [] };
+      tables.push(current);
+      continue;
+    }
+    if (current && /^\s*\)/.test(line)) {
+      current = null;
+      continue;
+    }
+    if (current) {
+      const column = line.match(/^\s*`([^`]+)`\s/);
+      if (column) {
+        current.columns.push(column[1]);
+      }
+    }
+  }
+  return tables;
+}
+
+/** 抽取 Markdown 指定二级标题下的正文。 */
+function markdownSection(text, heading) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim() === `## ${heading}`);
+  if (start < 0) {
+    return '';
+  }
+  const body = [];
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^##\s+/.test(lines[index])) {
+      break;
+    }
+    body.push(lines[index]);
+  }
+  return body.join('\n');
+}
+
+/** 抽取 README 中代码块内的命令行。 */
+function fencedCommands(text) {
+  const commands = [];
+  let inFence = false;
+  for (const line of text.split(/\r?\n/)) {
+    if (line.trim().startsWith('```')) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence && line.trim().length > 0) {
+      commands.push(line.trim());
+    }
+  }
+  return commands;
+}
+
+/** F08：SQL / README / 清单 / 环境自检 / A11 的十条判据。 */
+async function f08Items() {
+  const items = [];
+  const generator = await importTs('src/generate.ts');
+  const project = await importTs('src/project.ts');
+  const featuresModule = await importTs('src/features.ts');
+  const stacks = await importTs('src/stacks/index.ts');
+  const inv = await importTs('tests/invariants.ts');
+  const baseline = engineeringBaseline('F08', ['F01', 'F02', 'F03', 'F04', 'F05', 'F06', 'F07']);
+  const title = inv.F06_EXPECTED.sampleTitle;
+  const baseFeatures = featuresModule.recommendFeatures(title).features;
+  const buildInput = (a11, stackChoice = 'java') => ({
+    config: project.normalize({
+      title,
+      stackChoice,
+      a11Docs: a11
+        ? { opening: true, midterm: true, defense: true }
+        : { opening: false, midterm: false, defense: false },
+    }).config,
+    features: baseFeatures,
+  });
+  const input = buildInput(false);
+  const result = generator.generate(input);
+  const template = stacks.getStack(input.config.stackId);
+  const schema = generator.findFile(result.files, 'sql/schema.sql') ?? '';
+  const seed = generator.findFile(result.files, 'sql/seed.sql') ?? '';
+  const readme = generator.findFile(result.files, 'README.md') ?? '';
+  const manifest = generator.findFile(result.files, 'MANIFEST.md') ?? '';
+  const envCheck = generator.findFile(result.files, 'env-check.md') ?? '';
+
+  items.push(await safeItem(
+    'F08-01',
+    'SQL 词法解析无异常，CREATE TABLE >=1、字段含 COMMENT、无禁用语法',
+    'parser',
+    '通用词法解析器对 schema / seed 无错误；建表语句、COMMENT 与禁用语法清单均满足',
+    async () => {
+      const schemaLex = sqlLex(schema);
+      const seedLex = sqlLex(seed);
+      const schemaWords = schemaLex.tokens.map((token) => token.text.toUpperCase());
+      const createCount = schemaWords.filter(
+        (word, index) => word === 'CREATE' && schemaWords[index + 1] === 'TABLE',
+      ).length;
+      const commentOk = schemaWords.includes('COMMENT');
+      const disabled = template.sqlDialect.disabledSyntaxes.filter(
+        (syntax) => schema.includes(syntax) || seed.includes(syntax),
+      );
+      return {
+        ok: schema.length > 0 && seed.length > 0 && schemaLex.ok && seedLex.ok
+          && createCount >= 1 && commentOk && disabled.length === 0,
+        actual: `schema词法=${schemaLex.ok}, seed词法=${seedLex.ok}, CREATE TABLE=${createCount}, COMMENT=${commentOk}, 禁用语法命中=${disabled.join(',') || '无'}`,
+        evidence: [
+          `schema 字符数=${schema.length}, seed 字符数=${seed.length}`,
+          `词法错误: ${[...schemaLex.errors, ...seedLex.errors].join(' | ') || '无'}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F08-02',
+    'schema 表名 / 字段经解析结果与 ctx.dataModel 结构断言一致',
+    'parser',
+    '解析出的表名集合与列名集合分别等于 dataModel.entities 的名称与字段',
+    async () => {
+      const tables = parseSchemaTables(schema);
+      const expected = input.config.dataModel.entities;
+      const problems = [];
+      if (tables.length !== expected.length) {
+        problems.push(`表数 ${tables.length} != ${expected.length}`);
+      }
+      for (const entity of expected) {
+        const found = tables.find((table) => table.name === entity.name);
+        if (!found) {
+          problems.push(`缺表 ${entity.name}`);
+          continue;
+        }
+        for (const field of entity.fields) {
+          if (!found.columns.includes(field.name)) {
+            problems.push(`缺列 ${entity.name}.${field.name}`);
+          }
+        }
+      }
+      return {
+        ok: problems.length === 0 && tables.length > 0,
+        actual: `解析表=${tables.map((table) => `${table.name}(${table.columns.join(',')})`).join(' | ')}, 问题=${problems.join(';') || '无'}`,
+        evidence: [`dataModel 实体数=${expected.length}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F08-03',
+    'seed 账号字段与 ctx.auth 及前端登录表单字段静态一致（替代登录冒烟）',
+    'invariant',
+    'seed 含演示账号、口令列、角色列；后端认证源码含同名列；登录表单含 loginFormFields',
+    async () => {
+      const auth = input.config.auth;
+      const form = generator.findFile(result.files, 'frontend/src/LoginForm.tsx') ?? '';
+      const authSource = result.files.find((file) => file.path.includes('AuthService'))?.content ?? '';
+      const checks = {
+        username: seed.includes(auth.demoAccount.username),
+        password: seed.includes(auth.demoAccount.password),
+        role: seed.includes(auth.demoAccount.role),
+        passwordColumn: seed.includes(auth.passwordField) && authSource.includes(auth.passwordField),
+        roleColumn: seed.includes(auth.roleField) && authSource.includes(auth.roleField),
+        formFields: auth.loginFormFields.every((field) => form.includes(`name="${field}"`)),
+        algo: seed.includes(auth.passwordAlgo),
+      };
+      return {
+        ok: Object.values(checks).every(Boolean),
+        actual: JSON.stringify(checks),
+        evidence: [`登录表单字段=${auth.loginFormFields.join(',')}`, `口令算法=${auth.passwordAlgo}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F08-04',
+    '生成产物 README 中每个版本号 ∈ ctx.versions、每条命令 ∈ 栈模板命令表、目录段 = 实际文件树',
+    'parser',
+    '三类集合差为零：版本、命令、目录路径',
+    async () => {
+      const versionValues = Object.values(input.config.versions);
+      const versionTokens = [...new Set(readme.match(/\d+\.\d+(?:\.\d+)*/g) ?? [])];
+      const badVersions = versionTokens.filter(
+        (token) => !versionValues.some((value) => value.includes(token)),
+      );
+      const commands = fencedCommands(readme);
+      const allowedCommands = template.readmeBaseline.commands.map((entry) => entry.command);
+      const badCommands = commands.filter((command) => !allowedCommands.includes(command));
+      const dirSection = markdownSection(readme, '目录说明');
+      const listedPaths = [...dirSection.matchAll(/`([^`]+)`/g)].map((entry) => entry[1]);
+      const actualPaths = result.files.map((file) => file.path);
+      const missingPaths = actualPaths.filter((path) => !listedPaths.includes(path));
+      const extraPaths = listedPaths.filter((path) => !actualPaths.includes(path));
+      return {
+        ok: readme.length > 0 && badVersions.length === 0 && badCommands.length === 0
+          && commands.length === allowedCommands.length
+          && missingPaths.length === 0 && extraPaths.length === 0,
+        actual: `版本=${versionTokens.join(',')} 违规=${badVersions.join(',') || '无'}; 命令=${commands.length}/${allowedCommands.length} 违规=${badCommands.join(' | ') || '无'}; 目录缺=${missingPaths.join(',') || '无'} 多=${extraPaths.join(',') || '无'}`,
+        evidence: [
+          `ctx.versions: ${versionValues.join(' / ')}`,
+          `栈模板命令表: ${allowedCommands.join(' | ')}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F08-05',
+    'JSON.parse（package.json / lockfile）通过',
+    'parser',
+    '本系统 package.json、package-lock.json 与生成产物 frontend/package.json 均可解析',
+    async () => {
+      const parsed = [];
+      for (const rel of ['package.json', 'package-lock.json']) {
+        const outcome = safeJson(rel);
+        parsed.push({ rel, ok: outcome.ok });
+      }
+      let generatedOk = false;
+      try {
+        JSON.parse(generator.findFile(result.files, 'frontend/package.json') ?? '');
+        generatedOk = true;
+      } catch {
+        generatedOk = false;
+      }
+      return {
+        ok: parsed.every((entry) => entry.ok) && generatedOk,
+        actual: `${parsed.map((entry) => `${entry.rel}=${entry.ok}`).join(', ')}, 生成产物 package.json=${generatedOk}`,
+        evidence: parsed.map((entry) => `${entry.rel}: ${entry.ok ? 'JSON.parse OK' : '解析失败'}`),
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F08-06',
+    'MANIFEST.md 覆盖全部产物且 A12 标「待做」、无产物文件',
+    'invariant',
+    '清单路径集合 == 实际文件树；A12 待做标记存在；无 jar/exe/Docker 文件',
+    async () => {
+      const declared = [...manifest.matchAll(/`([^`]+)`/g)].map((entry) => entry[1]);
+      const actualPaths = result.files.map((file) => file.path);
+      const missing = actualPaths.filter((path) => !declared.includes(path));
+      const forbiddenFiles = actualPaths.filter((path) => /\.(jar|exe)$|Dockerfile/.test(path));
+      return {
+        ok: manifest.includes(inv.F08_EXPECTED.a12Note)
+          && missing.length === 0 && forbiddenFiles.length === 0,
+        actual: `清单条目=${declared.length}, 实际文件=${actualPaths.length}, 缺失=${missing.join(',') || '无'}, A12待做=${manifest.includes(inv.F08_EXPECTED.a12Note)}, 部署产物=${forbiddenFiles.join(',') || '无'}`,
+        evidence: [`清单路径: ${declared.join(' | ')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F08-07',
+    'env-check.md 只含只读检查命令、不含安装动作与回填交互（静态文本产物）',
+    'invariant',
+    '扫描无 install / apt / yum / pip / 回填 / 核对类交互描述；命令来自模板只读检查表',
+    async () => {
+      const forbidden = ['install', 'apt-get', 'yum', 'pip', '请核对', '请填写', '请确认', '回填', '手动填写'];
+      const hits = forbidden.filter((token) => envCheck.includes(token));
+      const readOnlyCommands = template.envCheckItems.map((item) => item.command);
+      const commandsPresent = readOnlyCommands.every((command) => envCheck.includes(command));
+      return {
+        ok: envCheck.length > 0 && hits.length === 0 && commandsPresent,
+        actual: `静态文本字符数=${envCheck.length}, 违规词命中=${hits.join(',') || '无'}, 只读命令齐备=${commandsPresent}`,
+        evidence: [`只读检查命令: ${readOnlyCommands.join(' | ')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F08-08',
+    'A11 未勾选不生成三文档、勾选时生成且事实字段全部为空占位',
+    'invariant',
+    '未勾选路径集合为空；勾选时三份文档均含四个事实字段且值为留空占位',
+    async () => {
+      const offPaths = generator.generate(buildInput(false)).files.map((file) => file.path);
+      const onResult = generator.generate(buildInput(true));
+      const offLeak = inv.F08_EXPECTED.a11Paths.filter((path) => offPaths.includes(path));
+      const problems = [];
+      for (const path of inv.F08_EXPECTED.a11Paths) {
+        const doc = generator.findFile(onResult.files, path);
+        if (!doc) {
+          problems.push(`缺文档 ${path}`);
+          continue;
+        }
+        for (const field of inv.F08_EXPECTED.emptyFields) {
+          if (!doc.includes(`- ${field}：${inv.F08_EXPECTED.emptyPlaceholder}`)) {
+            problems.push(`${path} 的 ${field} 未留空`);
+          }
+        }
+      }
+      return {
+        ok: offLeak.length === 0 && problems.length === 0,
+        actual: `未勾选泄漏=${offLeak.join(',') || '无'}, 勾选问题=${problems.join(';') || '无'}`,
+        evidence: [`事实字段: ${inv.F08_EXPECTED.emptyFields.join(',')}`, `占位符: ${inv.F08_EXPECTED.emptyPlaceholder}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F08-09',
+    '生成产物 README 含边界声明原句',
+    'invariant',
+    `README 原样包含「${inv.F08_EXPECTED.boundaryStatement}」`,
+    async () => ({
+      ok: readme.includes(inv.F08_EXPECTED.boundaryStatement),
+      actual: `原句存在=${readme.includes(inv.F08_EXPECTED.boundaryStatement)}`,
+      evidence: [`边界声明来自 tests/invariants.ts 硬编码字面常量`],
+    }),
+  ));
+
+  items.push(makeItem(
+    'F08-10',
+    '构建 + 全量回归通过（工程侧机器证据）',
+    'parser',
+    'build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备',
+    baseline.ok ? '全部条件成立' : '存在未成立条件',
+    baseline.ok ? 'PASS' : 'FAIL',
+    baseline.evidence,
+  ));
+
+  return items;
+}
+
 /** 已实现功能点的判据构造器表；后续功能点逐个登记，未登记一律 BLOCKED。 */
 const FEATURE_BUILDERS = Object.freeze({
   F02: f02Items,
@@ -1903,6 +2292,7 @@ const FEATURE_BUILDERS = Object.freeze({
   F05: f05Items,
   F06: f06Items,
   F07: f07Items,
+  F08: f08Items,
 });
 
 const argument = process.argv[2] ?? '';
