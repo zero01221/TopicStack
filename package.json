@@ -10,9 +10,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && node scripts/check.mjs --stamp=build",
+    "build": "node scripts/check.mjs --stamp=build-start && tsc --noEmit && vite build && node scripts/check.mjs --stamp=build",
     "test": "vitest run",
-    "lint": "node scripts/check.mjs --lint",
+    "lint": "node scripts/check.mjs --stamp=lint-start && node scripts/check.mjs --lint",
     "check": "node scripts/check.mjs"
   },
   "dependencies": {

@@ -1,0 +1,128 @@
+{
+  "checkId": "CHK-F04-01",
+  "feature": "F04",
+  "stack": "common",
+  "items": [
+    {
+      "id": "F04-01",
+      "criterion": "样本题目命中关键词表产出至少五个功能点",
+      "anchor": "parser",
+      "expected": "命中关键词数大于零，功能点数 >= 5",
+      "actual": "命中关键词=11, 功能点=10, 回退=false",
+      "verdict": "PASS",
+      "evidence": [
+        "样本题目: 基于 Java 的图书馆管理系统与订单预约平台，含数据分析、推荐系统、论坛社区与文件上传",
+        "命中关键词: 管理系统、图书馆、图书、订单、预约、数据分析、推荐、论坛、社区、上传、文件"
+      ]
+    },
+    {
+      "id": "F04-02",
+      "criterion": "编号全部匹配 FP-\\d{3} 且唯一",
+      "anchor": "invariant",
+      "expected": "每个编号匹配 /^FP-\\d{3}$/ 且集合无重复",
+      "actual": "编号=FP-001,FP-002,FP-003,FP-004,FP-005,FP-006,FP-007,FP-008,FP-009,FP-010, 格式全合法=true, 唯一=true",
+      "verdict": "PASS",
+      "evidence": [
+        "功能点数量=10"
+      ]
+    },
+    {
+      "id": "F04-03",
+      "criterion": "重复标题自动合并且无空验收条件",
+      "anchor": "invariant",
+      "expected": "重复标题合并为一项，所有功能点 acceptance 非空",
+      "actual": "合并后数量=2, 验收条件全非空=true, 条件已合并=true",
+      "verdict": "PASS",
+      "evidence": [
+        "输出标题: 用户登录 | 数据导出"
+      ]
+    },
+    {
+      "id": "F04-04",
+      "criterion": "normalizeFeatures() 幂等",
+      "anchor": "invariant",
+      "expected": "对自身输出再次规范化，深比较完全相等",
+      "actual": "深比较相等=true, 功能点数=2",
+      "verdict": "PASS",
+      "evidence": [
+        "首次编号: FP-001,FP-002"
+      ]
+    },
+    {
+      "id": "F04-05",
+      "criterion": "全手输路径产出同样合法的功能点且 source 为 manual",
+      "anchor": "parser",
+      "expected": "createManualFeatures 结果编号合法、无冲突、来源全部为 manual",
+      "actual": "数量=2, 编号合法=true, 来源全为 manual=true, 无冲突=true",
+      "verdict": "PASS",
+      "evidence": [
+        "输出编号: FP-001,FP-002"
+      ]
+    },
+    {
+      "id": "F04-06",
+      "criterion": "未命中时回退通用 CRUD 骨架且不产生任何人工把关步骤",
+      "anchor": "invariant",
+      "expected": "fallback=true 且功能点 >= 5 且提示为「建议手动调整」；features/main/ui 三处禁用词计数为 0",
+      "actual": "fallback=true, 骨架功能点=7, 提示=\"建议手动调整\", 禁用词命中=0, 步骤数=5",
+      "verdict": "PASS",
+      "evidence": [
+        "src/features.ts 字符数=8767",
+        "src/main.tsx 步骤枚举: input | analysis | techdoc | deliverables | history"
+      ]
+    },
+    {
+      "id": "F04-07",
+      "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+      "anchor": "parser",
+      "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "锁文件 v3=true, 已安装快照=true",
+        "build/lint 成功戳与 dist 内容哈希一致=true",
+        "前序功能点回归记录全 PASS: F01,F02,F03 => true",
+        "本点测试文件齐备且无跳过标记: true"
+      ]
+    }
+  ],
+  "declaredChecks": 7,
+  "evaluatedChecks": 7,
+  "unknownCount": 0,
+  "evidence": [
+    {
+      "path": "package.json",
+      "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+    },
+    {
+      "path": "checks/runs.json",
+      "sha256": "c89d3b53f8321b81998688a80abd78abd959915eb096bc168e6810b4087e2ac0"
+    },
+    {
+      "path": "tests/invariants.ts",
+      "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+    },
+    {
+      "path": "tests/F04.test.ts",
+      "sha256": "6f14935216022c9fec240d784aaff2281d6417b3bc0428708fe919a5f449a64d"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "sha256": "61b31a1f8e3f4968b0331e818e60ecf42142aef96ff7c0636493084038836bf7"
+    },
+    {
+      "path": "src/types.ts",
+      "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+    }
+  ],
+  "verdict": "PASS",
+  "createdAt": "2026-11-10T03:46:14.101Z"
+}

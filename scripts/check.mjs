@@ -174,6 +174,14 @@ function runStamp(phase) {
     }
   }
   runs.schema = 1;
+  // 命令链开始时先撤销成功戳；只有命令真正跑完才会重新置为 true，
+  // 这样构建 / 静态检查中途失败时不会被上一轮的旧证据误判为 PASS。
+  if (phase === 'build-start') {
+    runs.build = { ok: false, distHash: '' };
+  }
+  if (phase === 'lint-start') {
+    runs.lint = { ok: false };
+  }
   if (phase === 'build') {
     runs.build = { ok: true, distHash: computeDistHash() };
   }
@@ -1172,10 +1180,169 @@ async function f03Items() {
   return items;
 }
 
+/** F04：功能点分析的七条判据。 */
+async function f04Items() {
+  const items = [];
+  const featuresModule = await importTs('src/features.ts');
+  const featureSource = exists('src/features.ts') ? readText('src/features.ts') : '';
+  const mainSource = exists('src/main.tsx') ? readText('src/main.tsx') : '';
+  const uiSource = exists('src/ui.tsx') ? readText('src/ui.tsx') : '';
+  const baseline = engineeringBaseline('F04', ['F01', 'F02', 'F03']);
+  const sampleTitle = '基于 Java 的图书馆管理系统与订单预约平台，含数据分析、推荐系统、论坛社区与文件上传';
+
+  items.push(await safeItem(
+    'F04-01',
+    '样本题目命中关键词表产出至少五个功能点',
+    'parser',
+    '命中关键词数大于零，功能点数 >= 5',
+    async () => {
+      const result = featuresModule.recommendFeatures(sampleTitle);
+      return {
+        ok: !result.fallback
+          && result.matchedKeywords.length > 0
+          && result.features.length >= 5,
+        actual: `命中关键词=${result.matchedKeywords.length}, 功能点=${result.features.length}, 回退=${result.fallback}`,
+        evidence: [
+          `样本题目: ${sampleTitle}`,
+          `命中关键词: ${result.matchedKeywords.join('、') || '无'}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F04-02',
+    '编号全部匹配 FP-\\d{3} 且唯一',
+    'invariant',
+    '每个编号匹配 /^FP-\\d{3}$/ 且集合无重复',
+    async () => {
+      const points = featuresModule.recommendFeatures(sampleTitle).features;
+      const ids = points.map((point) => point.id);
+      const allValid = ids.every((id) => /^FP-\d{3}$/.test(id));
+      const unique = new Set(ids).size === ids.length;
+      return {
+        ok: allValid && unique && ids.length > 0,
+        actual: `编号=${ids.join(',')}, 格式全合法=${allValid}, 唯一=${unique}`,
+        evidence: [`功能点数量=${points.length}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F04-03',
+    '重复标题自动合并且无空验收条件',
+    'invariant',
+    '重复标题合并为一项，所有功能点 acceptance 非空',
+    async () => {
+      const drafts = [
+        { title: '  用户登录  ', acceptance: ['首次条件'] },
+        { title: '用户登录', acceptance: ['首次条件', '追加条件'] },
+        { title: '数据导出' },
+        { title: '   ' },
+      ];
+      const points = featuresModule.normalizeFeatures(drafts);
+      const merged = points.length === 2;
+      const acceptanceOk = points.every((point) => point.acceptance.length > 0);
+      const unionOk = points[0]?.acceptance.includes('追加条件') === true;
+      return {
+        ok: merged && acceptanceOk && unionOk,
+        actual: `合并后数量=${points.length}, 验收条件全非空=${acceptanceOk}, 条件已合并=${unionOk}`,
+        evidence: [`输出标题: ${points.map((point) => point.title).join(' | ')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F04-04',
+    'normalizeFeatures() 幂等',
+    'invariant',
+    '对自身输出再次规范化，深比较完全相等',
+    async () => {
+      const first = featuresModule.normalizeFeatures([
+        { title: '基础数据新增' },
+        { title: '基础数据删除', acceptance: ['删除后查询不到'] },
+      ]);
+      const second = featuresModule.normalizeFeatures(first);
+      const equal = JSON.stringify(first) === JSON.stringify(second);
+      return {
+        ok: equal && first.length > 0,
+        actual: `深比较相等=${equal}, 功能点数=${first.length}`,
+        evidence: [`首次编号: ${first.map((point) => point.id).join(',')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F04-05',
+    '全手输路径产出同样合法的功能点且 source 为 manual',
+    'parser',
+    'createManualFeatures 结果编号合法、无冲突、来源全部为 manual',
+    async () => {
+      const points = featuresModule.createManualFeatures([
+        '  用户登录 ', '', '订单查询', '订单查询',
+      ]);
+      const allValid = points.every((point) => /^FP-\d{3}$/.test(point.id));
+      const allManual = points.length > 0 && points.every((point) => point.source === 'manual');
+      const noConflicts = featuresModule.checkFeatureConflicts(points).length === 0;
+      return {
+        ok: allValid && allManual && noConflicts,
+        actual: `数量=${points.length}, 编号合法=${allValid}, 来源全为 manual=${allManual}, 无冲突=${noConflicts}`,
+        evidence: [`输出编号: ${points.map((point) => point.id).join(',')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F04-06',
+    '未命中时回退通用 CRUD 骨架且不产生任何人工把关步骤',
+    'invariant',
+    'fallback=true 且功能点 >= 5 且提示为「建议手动调整」；features/main/ui 三处禁用词计数为 0',
+    async () => {
+      // 该样例刻意不含关键词表中的任何词，用于验证未命中回退路径。
+      const result = featuresModule.recommendFeatures('甲乙丙丁戊');
+      const forbidden = /confirm|review|approve|pending|确认|审核/gi;
+      const hits = [featureSource, mainSource, uiSource]
+        .map((text) => (text.match(forbidden) ?? []).length)
+        .reduce((sum, count) => sum + count, 0);
+      const stepMatch = mainSource.match(/type\s+Step\s*=\s*([^;]+);/);
+      const stepNames = stepMatch
+        ? [...stepMatch[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1])
+        : [];
+      const ok = result.fallback === true
+        && result.features.length >= 5
+        && result.hint === '建议手动调整'
+        && hits === 0
+        && stepNames.length === 5
+        && stepNames.every((name) => !/confirm|review|approve|pending/i.test(name));
+      return {
+        ok,
+        actual: `fallback=${result.fallback}, 骨架功能点=${result.features.length}, 提示="${result.hint}", 禁用词命中=${hits}, 步骤数=${stepNames.length}`,
+        evidence: [
+          `src/features.ts 字符数=${featureSource.length}`,
+          `src/main.tsx 步骤枚举: ${stepNames.join(' | ')}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(makeItem(
+    'F04-07',
+    '构建 + 全量回归通过（工程侧机器证据）',
+    'parser',
+    'build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备',
+    baseline.ok ? '全部条件成立' : '存在未成立条件',
+    baseline.ok ? 'PASS' : 'FAIL',
+    baseline.evidence,
+  ));
+
+  return items;
+}
+
 /** 已实现功能点的判据构造器表；后续功能点逐个登记，未登记一律 BLOCKED。 */
 const FEATURE_BUILDERS = Object.freeze({
   F02: f02Items,
   F03: f03Items,
+  F04: f04Items,
 });
 
 const argument = process.argv[2] ?? '';

@@ -7,9 +7,15 @@
  * 「一键采用建议值 / 自动修复」；流程中没有任何人工把关环节。
  */
 import { useMemo, useState, type ReactElement } from 'react';
-import type { A11Docs, ProjectConfig, Versions } from './types';
+import type { A11Docs, FeaturePriority, ProjectConfig, Versions } from './types';
 import { SUGGESTED_DEFAULTS } from './types';
 import { normalize, recommendStackId } from './project';
+import type { FeatureDraft } from './features';
+import {
+  checkFeatureConflicts,
+  normalizeFeatures,
+  recommendFeatures,
+} from './features';
 
 /** 基准版本组的五个可覆盖字段。 */
 export const VERSION_FIELDS: readonly { readonly key: keyof Versions; readonly label: string }[] = [
@@ -66,6 +72,146 @@ export function ExceptionNotice({ message, onAdopt }: ExceptionNoticeProps): Rea
           自动修复
         </button>
       </div>
+    </div>
+  );
+}
+
+/** 功能点编辑器属性：题目只用于关键词推荐，本身不是必填输入。 */
+export interface FeatureEditorProps {
+  readonly title: string;
+}
+
+/**
+ * 功能点编辑器（F04）：展示关键词推荐结果，支持增删改、编辑验收条件、
+ * 切换全手输，并实时显示规范化编号与冲突项。
+ */
+export function FeatureEditor({ title }: FeatureEditorProps): ReactElement {
+  const recommendation = useMemo(() => recommendFeatures(title), [title]);
+  const [drafts, setDrafts] = useState<readonly FeatureDraft[]>(
+    () => recommendation.features.map((feature) => ({
+      id: feature.id,
+      title: feature.title,
+      description: feature.description,
+      acceptance: feature.acceptance,
+      module: feature.module,
+      priority: feature.priority,
+      source: feature.source,
+      dependsOn: feature.dependsOn,
+    })),
+  );
+  const features = useMemo(() => normalizeFeatures(drafts), [drafts]);
+  const conflicts = useMemo(() => checkFeatureConflicts(features), [features]);
+
+  const updateRow = (index: number, patch: FeatureDraft): void => {
+    setDrafts((previous) => previous.map((row, position) => (
+      position === index ? { ...row, ...patch } : row
+    )));
+  };
+  const addRow = (): void => {
+    setDrafts((previous) => [...previous, { title: '', source: 'manual' }]);
+  };
+  const removeRow = (index: number): void => {
+    setDrafts((previous) => previous.filter((_, position) => position !== index));
+  };
+  const switchToManual = (): void => {
+    setDrafts([{ title: '', source: 'manual' }]);
+  };
+
+  return (
+    <div className="mt-3">
+      <p className="text-xs text-slate-500">
+        命中关键词 {recommendation.matchedKeywords.length} 个；
+        {recommendation.fallback
+          ? `未命中，已回退通用 CRUD 骨架，${recommendation.hint}`
+          : '按题目关键词自动推荐'}
+        。
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={addRow}
+          className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700"
+        >
+          新增功能点
+        </button>
+        <button
+          type="button"
+          onClick={switchToManual}
+          className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700"
+        >
+          清空并手输
+        </button>
+      </div>
+
+      <ul className="mt-3 space-y-3">
+        {drafts.map((row, index) => (
+          <li key={`feature-row-${index}`} className="rounded border border-slate-200 p-3">
+            <p className="text-xs text-slate-400">
+              编号 {features[index]?.id ?? '待分配'} · 来源 {row.source ?? 'auto'}
+            </p>
+            <label className="mt-2 block text-xs text-slate-600">
+              标题
+              <input
+                value={row.title ?? ''}
+                onChange={(event) => updateRow(index, { title: event.target.value })}
+                className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+              />
+            </label>
+            <label className="mt-2 block text-xs text-slate-600">
+              描述
+              <input
+                value={row.description ?? ''}
+                onChange={(event) => updateRow(index, { description: event.target.value })}
+                className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+              />
+            </label>
+            <label className="mt-2 block text-xs text-slate-600">
+              验收条件（用竖线分隔）
+              <input
+                value={(row.acceptance ?? []).join('|')}
+                onChange={(event) => updateRow(index, {
+                  acceptance: event.target.value
+                    .split('|')
+                    .map((segment) => segment.trim())
+                    .filter((segment) => segment.length > 0),
+                })}
+                className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+              />
+            </label>
+            <label className="mt-2 block text-xs text-slate-600">
+              优先级
+              <select
+                value={row.priority ?? 'medium'}
+                onChange={(event) => updateRow(index, {
+                  priority: event.target.value as FeaturePriority,
+                })}
+                className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+              >
+                <option value="high">高</option>
+                <option value="medium">中</option>
+                <option value="low">低</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => removeRow(index)}
+              className="mt-2 rounded border border-rose-300 px-3 py-1 text-xs text-rose-700"
+            >
+              删除
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <section className="mt-4 rounded bg-slate-50 p-3" aria-label="功能点摘要">
+        <p className="text-xs text-slate-600">规范化后功能点数：{features.length}</p>
+        <p className="text-xs text-slate-600">
+          编号：{features.map((feature) => feature.id).join(' / ') || '无'}
+        </p>
+        <p className="text-xs text-slate-600">
+          冲突项：{conflicts.length === 0 ? '无' : conflicts.join('、')}
+        </p>
+      </section>
     </div>
   );
 }
@@ -217,6 +363,13 @@ export function ConfigForm(): ReactElement {
           </ul>
         )}
       </section>
+
+      {title.trim().length > 0 ? (
+        <div className="mt-6 border-t border-slate-200 pt-4">
+          <h3 className="text-sm font-medium text-slate-700">功能点分析（自动推荐 + 手动调整）</h3>
+          <FeatureEditor key={title} title={title} />
+        </div>
+      ) : null}
     </div>
   );
 }

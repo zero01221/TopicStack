@@ -36,7 +36,7 @@
       "verdict": "PASS",
       "evidence": [
         "src/main.tsx 步骤枚举: input | analysis | techdoc | deliverables | history",
-        "src/ui.tsx 字符数=7779"
+        "src/ui.tsx 字符数=13300"
       ]
     },
     {
@@ -83,7 +83,7 @@
   "evidence": [
     {
       "path": "package.json",
-      "sha256": "4a2c6e2247fbc93a3779343c1771b4ffa6efcc898fc79ca56e9dc5f663d05c61"
+      "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
     },
     {
       "path": "package-lock.json",
@@ -95,7 +95,7 @@
     },
     {
       "path": "checks/runs.json",
-      "sha256": "143debc2f263251af9e7050b0c31969bfd550a41066211e6290750a7f1583672"
+      "sha256": "c89d3b53f8321b81998688a80abd78abd959915eb096bc168e6810b4087e2ac0"
     },
     {
       "path": "tests/invariants.ts",
@@ -107,7 +107,7 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "4266a05b1140e22fe4e48f04fccc71a83b252fad7231d13bd5b4d2aef6ec65e6"
+      "sha256": "61b31a1f8e3f4968b0331e818e60ecf42142aef96ff7c0636493084038836bf7"
     },
     {
       "path": "src/types.ts",
@@ -115,5 +115,5 @@
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T03:38:49.756Z"
+  "createdAt": "2026-11-10T03:46:15.164Z"
 }

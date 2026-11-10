@@ -16,8 +16,8 @@
         "node_modules/.package-lock.json: OK（依赖已按锁文件安装）",
         "checks/runs.json: build.ok=true, lint.ok=true",
         "dist 内容哈希一致: YES",
-        "scripts.build: tsc --noEmit && vite build && node scripts/check.mjs --stamp=build",
-        "scripts.lint: node scripts/check.mjs --lint"
+        "scripts.build: node scripts/check.mjs --stamp=build-start && tsc --noEmit && vite build && node scripts/check.mjs --stamp=build",
+        "scripts.lint: node scripts/check.mjs --stamp=lint-start && node scripts/check.mjs --lint"
       ]
     },
     {
@@ -30,7 +30,7 @@
       "evidence": [
         "dist/index.html 存在: true",
         "根容器 id=\"root\": true",
-        "构建后 JS 资源: /assets/index-CPUTKpvR.js",
+        "构建后 JS 资源: /assets/index-cso3k0b9.js",
         "资源文件实际存在: true"
       ]
     },
@@ -94,7 +94,7 @@
   "evidence": [
     {
       "path": "package.json",
-      "sha256": "4a2c6e2247fbc93a3779343c1771b4ffa6efcc898fc79ca56e9dc5f663d05c61"
+      "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
     },
     {
       "path": "package-lock.json",
@@ -106,11 +106,11 @@
     },
     {
       "path": "dist/index.html",
-      "sha256": "b071ff5d24d1909ecdd0867763792694d44a415e63ec0374d6c5a62645e0410f"
+      "sha256": "3a2af1c25bb95091c88e10f18d197b564617d956ff9ab098bc2b118c66497933"
     },
     {
       "path": "checks/runs.json",
-      "sha256": "143debc2f263251af9e7050b0c31969bfd550a41066211e6290750a7f1583672"
+      "sha256": "c89d3b53f8321b81998688a80abd78abd959915eb096bc168e6810b4087e2ac0"
     },
     {
       "path": "tests/invariants.ts",
@@ -122,9 +122,9 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "4266a05b1140e22fe4e48f04fccc71a83b252fad7231d13bd5b4d2aef6ec65e6"
+      "sha256": "61b31a1f8e3f4968b0331e818e60ecf42142aef96ff7c0636493084038836bf7"
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T03:38:51.705Z"
+  "createdAt": "2026-11-10T03:46:17.078Z"
 }
