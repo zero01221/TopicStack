@@ -30,7 +30,7 @@
       "evidence": [
         "dist/index.html 存在: true",
         "根容器 id=\"root\": true",
-        "构建后 JS 资源: /assets/index-cso3k0b9.js",
+        "构建后 JS 资源: /assets/index-_oScPB29.js",
         "资源文件实际存在: true"
       ]
     },
@@ -106,11 +106,11 @@
     },
     {
       "path": "dist/index.html",
-      "sha256": "3a2af1c25bb95091c88e10f18d197b564617d956ff9ab098bc2b118c66497933"
+      "sha256": "05c6fb4b046380b5733cae69373526255c37c2985420a42c74ec56d4c74e0197"
     },
     {
       "path": "checks/runs.json",
-      "sha256": "c89d3b53f8321b81998688a80abd78abd959915eb096bc168e6810b4087e2ac0"
+      "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
     },
     {
       "path": "tests/invariants.ts",
@@ -122,9 +122,9 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "61b31a1f8e3f4968b0331e818e60ecf42142aef96ff7c0636493084038836bf7"
+      "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T03:46:17.078Z"
+  "createdAt": "2026-11-10T03:50:55.679Z"
 }

@@ -1338,11 +1338,209 @@ async function f04Items() {
   return items;
 }
 
+/** F05：双栈模板注册表与模板表的七条判据。 */
+async function f05Items() {
+  const items = [];
+  const stacks = await importTs('src/stacks/index.ts');
+  const javaMod = await importTs('src/stacks/java.ts');
+  const pythonMod = await importTs('src/stacks/python.ts');
+  const javaSource = exists('src/stacks/java.ts') ? readText('src/stacks/java.ts') : '';
+  const pythonSource = exists('src/stacks/python.ts') ? readText('src/stacks/python.ts') : '';
+  const registrySource = exists('src/stacks/index.ts') ? readText('src/stacks/index.ts') : '';
+  const baseline = engineeringBaseline('F05', ['F01', 'F02', 'F03', 'F04']);
+  const templates = [javaMod.javaTemplate, pythonMod.pythonTemplate];
+  const requiredFields = [
+    'stackId', 'label', 'dirTree', 'depsConfig', 'frontendCommon', 'backendFragments',
+    'sqlDialect', 'readmeBaseline', 'envCheckItems', 'commentPolicy',
+    'explainerAnchors', 'suggestedVersions',
+  ];
+
+  items.push(await safeItem(
+    'F05-01',
+    '注册表标识恰含 java 与 python',
+    'invariant',
+    "listStackIds() 恰好等于 ['java','python']",
+    async () => {
+      const ids = [...stacks.listStackIds()];
+      return {
+        ok: JSON.stringify(ids) === '["java","python"]',
+        actual: `标识=${ids.join(',')}`,
+        evidence: [`BUILTIN_TEMPLATES 数量=${stacks.BUILTIN_TEMPLATES.length}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F05-02',
+    '每栈 StackTemplate 必填字段齐全',
+    'invariant',
+    '十二个必填字段均存在且非空，依赖文件与命令表有内容',
+    async () => {
+      const missing = [];
+      for (const template of templates) {
+        for (const field of requiredFields) {
+          const value = template[field];
+          if (value === undefined || value === null
+            || (typeof value === 'string' && value.length === 0)
+            || (Array.isArray(value) && value.length === 0)) {
+            missing.push(`${template.stackId}.${field}`);
+          }
+        }
+        if (!template.depsConfig.template || !template.readmeBaseline.commands.length) {
+          missing.push(`${template.stackId}.依赖内容`);
+        }
+      }
+      return {
+        ok: missing.length === 0 && templates.length === 2,
+        actual: `缺失字段=${missing.join(',') || '无'}`,
+        evidence: [
+          `Java 依赖文件=${javaMod.javaTemplate.depsConfig.file}`,
+          `Python 依赖文件=${pythonMod.pythonTemplate.depsConfig.file}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F05-03',
+    '静态扫描两张模板表无版本号 / 账号字面量',
+    'invariant',
+    '两份模板表的字符串字面量不含版本号、版本串或演示账号；版本取自建议默认值表',
+    async () => {
+      const javaHits = scanForbiddenLiterals(javaSource);
+      const pythonHits = scanForbiddenLiterals(pythonSource);
+      const usesDefaults = javaSource.includes('SUGGESTED_DEFAULTS')
+        && pythonSource.includes('SUGGESTED_DEFAULTS')
+        && javaSource.includes('suggestedVersions')
+        && pythonSource.includes('suggestedVersions');
+      return {
+        ok: javaSource.length > 0 && pythonSource.length > 0
+          && javaHits.length === 0 && pythonHits.length === 0 && usesDefaults,
+        actual: `Java 命中=${javaHits.join(' | ') || '无'}, Python 命中=${pythonHits.join(' | ') || '无'}, 引用建议默认值表=${usesDefaults}`,
+        evidence: [
+          `src/stacks/java.ts (${javaSource.length} 字符)`,
+          `src/stacks/python.ts (${pythonSource.length} 字符)`,
+          `规则: ${FORBIDDEN_LITERAL_PATTERNS.map((rule) => rule.id).join(' / ')}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F05-04',
+    '模拟注册第三栈后可直接查表且注册表长度加一，消费方无需改动',
+    'invariant',
+    'createStackRegistry() 注册 mock 后 size+1 且 get 返回合法模板；注册表与 UI 无栈标识分支',
+    async () => {
+      const registry = stacks.createStackRegistry();
+      const before = registry.size();
+      const mock = { ...javaMod.javaTemplate, stackId: 'newstack', label: '模拟第三栈' };
+      registry.register(mock);
+      const fetched = registry.get('newstack');
+      const fetchedOk = Boolean(fetched)
+        && fetched.stackId === 'newstack'
+        && requiredFields.every((field) => fetched[field] !== undefined);
+      const sizeOk = registry.size() === before + 1;
+      const noBranchInRegistry = !/switch\s*\(|===\s*['"](?:java|python)['"]/.test(registrySource);
+      const consumerFiles = ['src/ui.tsx', 'src/project.ts', 'src/features.ts'];
+      const consumers = consumerFiles.filter((rel) => exists(rel)).map((rel) => readText(rel));
+      const noBranchInConsumers = consumers.every(
+        (text) => !/switch\s*\(|stackId\s*===\s*['"]/.test(text),
+      );
+      return {
+        ok: sizeOk && fetchedOk && noBranchInRegistry && noBranchInConsumers,
+        actual: `长度 ${before}→${registry.size()}, 查表成功=${fetchedOk}, 注册表无分支=${noBranchInRegistry}, 消费方无分支=${noBranchInConsumers}`,
+        evidence: [
+          `新增标识: ${registry.listIds().join(',')}`,
+          `消费方静态扫描: ${consumerFiles.join(', ')}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F05-05',
+    '两栈 sqlDialect 均覆盖所选 MySQL 版本禁用语法清单',
+    'parser',
+    "禁用语法含 OVER (/WITH ... AS/JSON_TABLE；能力表覆盖 MySQL 5.7 与 MySQL 8.0",
+    async () => {
+      const keywords = ['OVER (', 'WITH ... AS', 'JSON_TABLE'];
+      const versions = ['MySQL 5.7', 'MySQL 8.0'];
+      const problems = [];
+      for (const template of templates) {
+        for (const keyword of keywords) {
+          if (!template.sqlDialect.disabledSyntaxes.includes(keyword)) {
+            problems.push(`${template.stackId} 缺禁用语法 ${keyword}`);
+          }
+        }
+        for (const version of versions) {
+          const capability = template.sqlDialect.capabilityTable[version];
+          if (!capability) {
+            problems.push(`${template.stackId} 缺能力表 ${version}`);
+            continue;
+          }
+          if (version === 'MySQL 5.7'
+            && (capability.windowFunctions || capability.cte || capability.jsonTable)) {
+            problems.push(`${template.stackId} 的旧版能力开关应为 false`);
+          }
+        }
+        if (!template.sqlDialect.selectedDbVersion) {
+          problems.push(`${template.stackId} 缺所选数据库版本`);
+        }
+      }
+      return {
+        ok: problems.length === 0,
+        actual: `问题数=${problems.length}${problems.length > 0 ? ` (${problems.join('; ')})` : ''}`,
+        evidence: [
+          `Java 禁用语法数=${javaMod.javaTemplate.sqlDialect.disabledSyntaxes.length}`,
+          `Python 禁用语法数=${pythonMod.pythonTemplate.sqlDialect.disabledSyntaxes.length}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F05-06',
+    'pom.xml 模板 XML 标签配对通过，requirements.txt 模板每行格式合法',
+    'parser',
+    '通用标准解析器：XML 标签配对无异常；依赖清单每行符合名称==版本/注释/空行',
+    async () => {
+      const pom = javaMod.javaTemplate.depsConfig.template;
+      const requirements = pythonMod.pythonTemplate.depsConfig.template;
+      const xmlOk = xmlTagsBalanced(pom);
+      const lineResult = requirementsLinesValid(requirements);
+      const fileOk = javaMod.javaTemplate.depsConfig.file === 'pom.xml'
+        && pythonMod.pythonTemplate.depsConfig.file === 'requirements.txt';
+      return {
+        ok: xmlOk && lineResult.ok && fileOk,
+        actual: `XML 标签配对=${xmlOk}, 依赖行合法=${lineResult.ok}(内容行 ${lineResult.contentLines}), 文件名正确=${fileOk}`,
+        evidence: [
+          `pom.xml 模板字符数=${pom.length}`,
+          `requirements.txt 模板字符数=${requirements.length}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(makeItem(
+    'F05-07',
+    '构建 + 全量回归通过（工程侧机器证据）',
+    'parser',
+    'build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备',
+    baseline.ok ? '全部条件成立' : '存在未成立条件',
+    baseline.ok ? 'PASS' : 'FAIL',
+    baseline.evidence,
+  ));
+
+  return items;
+}
+
 /** 已实现功能点的判据构造器表；后续功能点逐个登记，未登记一律 BLOCKED。 */
 const FEATURE_BUILDERS = Object.freeze({
   F02: f02Items,
   F03: f03Items,
   F04: f04Items,
+  F05: f05Items,
 });
 
 const argument = process.argv[2] ?? '';

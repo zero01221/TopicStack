@@ -31,7 +31,7 @@
         "evidence": [
           "dist/index.html 存在: true",
           "根容器 id=\"root\": true",
-          "构建后 JS 资源: /assets/index-cso3k0b9.js",
+          "构建后 JS 资源: /assets/index-_oScPB29.js",
           "资源文件实际存在: true"
         ]
       },
@@ -107,11 +107,11 @@
       },
       {
         "path": "dist/index.html",
-        "sha256": "3a2af1c25bb95091c88e10f18d197b564617d956ff9ab098bc2b118c66497933"
+        "sha256": "05c6fb4b046380b5733cae69373526255c37c2985420a42c74ec56d4c74e0197"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "c89d3b53f8321b81998688a80abd78abd959915eb096bc168e6810b4087e2ac0"
+        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
       },
       {
         "path": "tests/invariants.ts",
@@ -123,11 +123,11 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "61b31a1f8e3f4968b0331e818e60ecf42142aef96ff7c0636493084038836bf7"
+        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T03:46:17.078Z"
+    "createdAt": "2026-11-10T03:50:55.679Z"
   },
   {
     "checkId": "CHK-F02-01",
@@ -237,7 +237,7 @@
       },
       {
         "path": "checks/runs.json",
-        "sha256": "c89d3b53f8321b81998688a80abd78abd959915eb096bc168e6810b4087e2ac0"
+        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
       },
       {
         "path": "tests/invariants.ts",
@@ -249,7 +249,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "61b31a1f8e3f4968b0331e818e60ecf42142aef96ff7c0636493084038836bf7"
+        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
       },
       {
         "path": "src/types.ts",
@@ -257,7 +257,7 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T03:46:16.203Z"
+    "createdAt": "2026-11-10T03:50:56.803Z"
   },
   {
     "checkId": "CHK-F03-01",
@@ -356,7 +356,7 @@
       },
       {
         "path": "checks/runs.json",
-        "sha256": "c89d3b53f8321b81998688a80abd78abd959915eb096bc168e6810b4087e2ac0"
+        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
       },
       {
         "path": "tests/invariants.ts",
@@ -368,7 +368,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "61b31a1f8e3f4968b0331e818e60ecf42142aef96ff7c0636493084038836bf7"
+        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
       },
       {
         "path": "src/types.ts",
@@ -376,7 +376,7 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T03:46:15.164Z"
+    "createdAt": "2026-11-10T03:50:57.972Z"
   },
   {
     "checkId": "CHK-F04-01",
@@ -484,7 +484,7 @@
       },
       {
         "path": "checks/runs.json",
-        "sha256": "c89d3b53f8321b81998688a80abd78abd959915eb096bc168e6810b4087e2ac0"
+        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
       },
       {
         "path": "tests/invariants.ts",
@@ -496,7 +496,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "61b31a1f8e3f4968b0331e818e60ecf42142aef96ff7c0636493084038836bf7"
+        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
       },
       {
         "path": "src/types.ts",
@@ -504,6 +504,138 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T03:46:14.101Z"
+    "createdAt": "2026-11-10T03:50:59.170Z"
+  },
+  {
+    "checkId": "CHK-F05-01",
+    "feature": "F05",
+    "stack": "java/python",
+    "items": [
+      {
+        "id": "F05-01",
+        "criterion": "注册表标识恰含 java 与 python",
+        "anchor": "invariant",
+        "expected": "listStackIds() 恰好等于 ['java','python']",
+        "actual": "标识=java,python",
+        "verdict": "PASS",
+        "evidence": [
+          "BUILTIN_TEMPLATES 数量=2"
+        ]
+      },
+      {
+        "id": "F05-02",
+        "criterion": "每栈 StackTemplate 必填字段齐全",
+        "anchor": "invariant",
+        "expected": "十二个必填字段均存在且非空，依赖文件与命令表有内容",
+        "actual": "缺失字段=无",
+        "verdict": "PASS",
+        "evidence": [
+          "Java 依赖文件=pom.xml",
+          "Python 依赖文件=requirements.txt"
+        ]
+      },
+      {
+        "id": "F05-03",
+        "criterion": "静态扫描两张模板表无版本号 / 账号字面量",
+        "anchor": "invariant",
+        "expected": "两份模板表的字符串字面量不含版本号、版本串或演示账号；版本取自建议默认值表",
+        "actual": "Java 命中=无, Python 命中=无, 引用建议默认值表=true",
+        "verdict": "PASS",
+        "evidence": [
+          "src/stacks/java.ts (3611 字符)",
+          "src/stacks/python.ts (2949 字符)",
+          "规则: 版本号 / 版本串 / 演示账号 / 账号口令"
+        ]
+      },
+      {
+        "id": "F05-04",
+        "criterion": "模拟注册第三栈后可直接查表且注册表长度加一，消费方无需改动",
+        "anchor": "invariant",
+        "expected": "createStackRegistry() 注册 mock 后 size+1 且 get 返回合法模板；注册表与 UI 无栈标识分支",
+        "actual": "长度 2→3, 查表成功=true, 注册表无分支=true, 消费方无分支=true",
+        "verdict": "PASS",
+        "evidence": [
+          "新增标识: java,python,newstack",
+          "消费方静态扫描: src/ui.tsx, src/project.ts, src/features.ts"
+        ]
+      },
+      {
+        "id": "F05-05",
+        "criterion": "两栈 sqlDialect 均覆盖所选 MySQL 版本禁用语法清单",
+        "anchor": "parser",
+        "expected": "禁用语法含 OVER (/WITH ... AS/JSON_TABLE；能力表覆盖 MySQL 5.7 与 MySQL 8.0",
+        "actual": "问题数=0",
+        "verdict": "PASS",
+        "evidence": [
+          "Java 禁用语法数=6",
+          "Python 禁用语法数=6"
+        ]
+      },
+      {
+        "id": "F05-06",
+        "criterion": "pom.xml 模板 XML 标签配对通过，requirements.txt 模板每行格式合法",
+        "anchor": "parser",
+        "expected": "通用标准解析器：XML 标签配对无异常；依赖清单每行符合名称==版本/注释/空行",
+        "actual": "XML 标签配对=true, 依赖行合法=true(内容行 4), 文件名正确=true",
+        "verdict": "PASS",
+        "evidence": [
+          "pom.xml 模板字符数=594",
+          "requirements.txt 模板字符数=152"
+        ]
+      },
+      {
+        "id": "F05-07",
+        "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+        "anchor": "parser",
+        "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+        "actual": "全部条件成立",
+        "verdict": "PASS",
+        "evidence": [
+          "锁文件 v3=true, 已安装快照=true",
+          "build/lint 成功戳与 dist 内容哈希一致=true",
+          "前序功能点回归记录全 PASS: F01,F02,F03,F04 => true",
+          "本点测试文件齐备且无跳过标记: true"
+        ]
+      }
+    ],
+    "declaredChecks": 7,
+    "evaluatedChecks": 7,
+    "unknownCount": 0,
+    "evidence": [
+      {
+        "path": "package.json",
+        "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+      },
+      {
+        "path": "README.md",
+        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+      },
+      {
+        "path": "checks/runs.json",
+        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+      },
+      {
+        "path": "tests/invariants.ts",
+        "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+      },
+      {
+        "path": "tests/F05.test.ts",
+        "sha256": "d0fde9ad25189819717b6b666af6046c6c1565b90d00e2deffd0b7c0b5d1f0c0"
+      },
+      {
+        "path": "scripts/check.mjs",
+        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
+      },
+      {
+        "path": "src/types.ts",
+        "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+      }
+    ],
+    "verdict": "PASS",
+    "createdAt": "2026-11-10T03:50:20.986Z"
   }
 ]

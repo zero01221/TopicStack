@@ -2,7 +2,7 @@
   "schema": 1,
   "build": {
     "ok": true,
-    "distHash": "660a946822d17316d3f3aab86f14141e52c0dc91eb946111662ece6caa5899f9"
+    "distHash": "547fbae0746afca84a3c340420acf8684a13e9e29d4ff368807496a03760a5d7"
   },
   "lint": {
     "ok": true
