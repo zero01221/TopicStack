@@ -2284,6 +2284,132 @@ async function f08Items() {
   return items;
 }
 
+/** F09：快照 v_n 与历史的六条判据。 */
+async function f09Items() {
+  const items = [];
+  const history = await importTs('src/history.ts');
+  const project = await importTs('src/project.ts');
+  const featuresModule = await importTs('src/features.ts');
+  const generator = await importTs('src/generate.ts');
+  const inv = await importTs('tests/invariants.ts');
+  const baseline = engineeringBaseline('F09', ['F01', 'F02', 'F03', 'F04', 'F05', 'F06', 'F07', 'F08']);
+  const rawTitle = '  基于 Java 的  图书馆 管理系统  ';
+  const createdAt = '2026-11-10T00:00:00.000Z';
+  const config = project.normalize({ title: rawTitle }).config;
+  const features = featuresModule.recommendFeatures(rawTitle).features;
+  const files = generator.generate({ config, features }).files;
+  const first = history.buildSnapshot(config, features, files, [], createdAt);
+  const second = history.buildSnapshot(config, features, files, [first], createdAt);
+  const uiSource = exists('src/ui.tsx') ? readText('src/ui.tsx') : '';
+
+  items.push(await safeItem(
+    'F09-01',
+    '快照版本自动 v_1、v_2 递增',
+    'invariant',
+    "nextVersion([]) === 'v_1'；已有 v_1 时下一版为 'v_2'",
+    async () => {
+      const zero = history.nextVersion([]);
+      const one = history.nextVersion([first]);
+      return {
+        ok: zero === inv.F09_EXPECTED.firstVersion
+          && one === inv.F09_EXPECTED.secondVersion
+          && first.version === inv.F09_EXPECTED.firstVersion
+          && second.version === inv.F09_EXPECTED.secondVersion,
+        actual: `空列表=${zero}, 已有 v_1=${one}, 首版=${first.version}, 次版=${second.version}`,
+        evidence: [`快照 id: ${first.id} / ${second.id}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F09-02',
+    'localStorage 写入 / 读取往返一致',
+    'parser',
+    '内存存储适配器写入两份快照后读回，内容与原对象完全一致',
+    async () => {
+      const storage = history.createMemoryStorage();
+      history.saveSnapshot(storage, first);
+      history.saveSnapshot(storage, second);
+      const loaded = history.listSnapshots(storage);
+      const same = loaded.length === 2
+        && JSON.stringify(loaded[0]) === JSON.stringify(first)
+        && JSON.stringify(loaded[1]) === JSON.stringify(second);
+      return {
+        ok: same && history.STORAGE_KEY === inv.F09_EXPECTED.storageKey,
+        actual: `读回条目=${loaded.length}, 往返一致=${same}, 存储键=${history.STORAGE_KEY}`,
+        evidence: [`版本序列=${loaded.map((entry) => entry.version).join(',')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F09-03',
+    'restore(snapshot) 重新生成的文件树 hash == manifestSummary.hash（纯文本哈希）',
+    'invariant',
+    '从快照重建后 hashTextFiles 结果等于摘要哈希，且不执行任何生成产物',
+    async () => {
+      const rebuilt = history.restore(first);
+      const rebuiltHash = generator.hashTextFiles(rebuilt.files);
+      return {
+        ok: rebuiltHash === first.manifestSummary.hash
+          && rebuilt.files.length === first.manifestSummary.fileCount
+          && history.verifySnapshot(first),
+        actual: `重建哈希=${rebuiltHash}, 摘要哈希=${first.manifestSummary.hash}, 文件数=${rebuilt.files.length}/${first.manifestSummary.fileCount}`,
+        evidence: [`确定性重建路径数=${rebuilt.files.length}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F09-04',
+    '历史条目名称自动生成（短名 + 版本 + 时间），面板支持查看 / 重新下载 / 删除',
+    'invariant',
+    'note 含短名、版本与时间；ui.tsx 含三个 data-action 入口且无手填命名控件',
+    async () => {
+      const short = history.shortTitle(rawTitle);
+      const label = history.formatSnapshotLabel(rawTitle, first.version, createdAt);
+      const autoNamed = first.note.includes(short)
+        && first.note.includes(first.version)
+        && first.note.includes(createdAt)
+        && first.note.includes(label);
+      const actions = ['view', 'redownload', 'delete']
+        .filter((action) => uiSource.includes(`data-action="${action}"`));
+      const noNameInput = !/name="(name|title|snapshotName)"/.test(uiSource);
+      return {
+        ok: autoNamed && actions.length === 3 && noNameInput,
+        actual: `自动命名=${autoNamed}, 面板入口=${actions.join(',')}, 无手填命名控件=${noNameInput}`,
+        evidence: [`note=${first.note}`, `短名=${short}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F09-05',
+    'rawInput.title 原样出现在快照 note 中（独立锚点 A）',
+    'rawInput',
+    'note 含未经规范化的原始题目字符串，且 config.rawInput.title 未被改写',
+    async () => ({
+      ok: first.note.includes(rawTitle)
+        && first.config.rawInput.title === rawTitle
+        && first.config.title !== rawTitle,
+      actual: `原样出现=${first.note.includes(rawTitle)}, 锚点未改写=${first.config.rawInput.title === rawTitle}, 规范化题目不同=${first.config.title !== rawTitle}`,
+      evidence: [`原始题目="${rawTitle}"`, `规范化题目="${first.config.title}"`],
+    }),
+  ));
+
+  items.push(makeItem(
+    'F09-06',
+    '构建 + 全量回归通过（工程侧机器证据）',
+    'parser',
+    'build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备',
+    baseline.ok ? '全部条件成立' : '存在未成立条件',
+    baseline.ok ? 'PASS' : 'FAIL',
+    baseline.evidence,
+  ));
+
+  return items;
+}
+
 /** 已实现功能点的判据构造器表；后续功能点逐个登记，未登记一律 BLOCKED。 */
 const FEATURE_BUILDERS = Object.freeze({
   F02: f02Items,
@@ -2293,6 +2419,7 @@ const FEATURE_BUILDERS = Object.freeze({
   F06: f06Items,
   F07: f07Items,
   F08: f08Items,
+  F09: f09Items,
 });
 
 const argument = process.argv[2] ?? '';

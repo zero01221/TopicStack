@@ -6,8 +6,10 @@
  * 可覆盖但不必操作。只有输入出现异常时才显示提示条，且每条提示都带
  * 「一键采用建议值 / 自动修复」；流程中没有任何人工把关环节。
  */
-import { useMemo, useState, type ReactElement } from 'react';
-import type { A11Docs, FeaturePriority, ProjectConfig, Versions } from './types';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import type {
+  A11Docs, FeaturePoint, FeaturePriority, ProjectConfig, Snapshot, Versions,
+} from './types';
 import { SUGGESTED_DEFAULTS } from './types';
 import { normalize, recommendStackId } from './project';
 import type { FeatureDraft } from './features';
@@ -79,13 +81,14 @@ export function ExceptionNotice({ message, onAdopt }: ExceptionNoticeProps): Rea
 /** 功能点编辑器属性：题目只用于关键词推荐，本身不是必填输入。 */
 export interface FeatureEditorProps {
   readonly title: string;
+  readonly onFeaturesChange?: (features: readonly FeaturePoint[]) => void;
 }
 
 /**
  * 功能点编辑器（F04）：展示关键词推荐结果，支持增删改、编辑验收条件、
  * 切换全手输，并实时显示规范化编号与冲突项。
  */
-export function FeatureEditor({ title }: FeatureEditorProps): ReactElement {
+export function FeatureEditor({ title, onFeaturesChange }: FeatureEditorProps): ReactElement {
   const recommendation = useMemo(() => recommendFeatures(title), [title]);
   const [drafts, setDrafts] = useState<readonly FeatureDraft[]>(
     () => recommendation.features.map((feature) => ({
@@ -101,6 +104,11 @@ export function FeatureEditor({ title }: FeatureEditorProps): ReactElement {
   );
   const features = useMemo(() => normalizeFeatures(drafts), [drafts]);
   const conflicts = useMemo(() => checkFeatureConflicts(features), [features]);
+
+  // 把规范化后的功能点同步给上层，供快照保存（不在快照里存大文件内容）。
+  useEffect(() => {
+    onFeaturesChange?.(features);
+  }, [features, onFeaturesChange]);
 
   const updateRow = (index: number, patch: FeatureDraft): void => {
     setDrafts((previous) => previous.map((row, position) => (
@@ -216,8 +224,14 @@ export function FeatureEditor({ title }: FeatureEditorProps): ReactElement {
   );
 }
 
+/** 配置表单回调：把当前配置与功能点交给上层生成快照。 */
+export interface ConfigFormProps {
+  readonly onGenerate?: (config: ProjectConfig, features: readonly FeaturePoint[]) => void;
+}
+
 /** 配置表单：唯一必填项是题目，其余控件均有系统建议默认值。 */
-export function ConfigForm(): ReactElement {
+export function ConfigForm({ onGenerate }: ConfigFormProps = {}): ReactElement {
+  const [currentFeatures, setCurrentFeatures] = useState<readonly FeaturePoint[]>([]);
   const [title, setTitle] = useState<string>('');
   const [stackChoice, setStackChoice] = useState<string>('');
   const [versionInputs, setVersionInputs] = useState<Record<keyof Versions, string>>(
@@ -266,6 +280,13 @@ export function ConfigForm(): ReactElement {
     setStackChoice('');
     setConstraintsText('');
     setA11({ ...SUGGESTED_DEFAULTS.a11Docs });
+  };
+
+  /** 把当前配置与功能点交给上层，由上层生成交付物并保存快照。 */
+  const handleGenerate = (): void => {
+    if (outcome.config !== null && onGenerate) {
+      onGenerate(outcome.config, currentFeatures);
+    }
   };
 
   const updateVersion = (key: keyof Versions, value: string): void => {
@@ -367,9 +388,83 @@ export function ConfigForm(): ReactElement {
       {title.trim().length > 0 ? (
         <div className="mt-6 border-t border-slate-200 pt-4">
           <h3 className="text-sm font-medium text-slate-700">功能点分析（自动推荐 + 手动调整）</h3>
-          <FeatureEditor key={title} title={title} />
+          <FeatureEditor
+            key={title}
+            title={title}
+            onFeaturesChange={setCurrentFeatures}
+          />
         </div>
       ) : null}
+
+      {outcome.config !== null && onGenerate ? (
+        <button
+          type="button"
+          data-action="save-snapshot"
+          onClick={handleGenerate}
+          className="mt-4 rounded bg-slate-800 px-4 py-2 text-sm text-white"
+        >
+          生成交付物并保存快照
+        </button>
+      ) : null}
     </div>
+  );
+}
+
+/** 历史面板属性：查看、重新下载 ZIP 与删除。 */
+export interface HistoryPanelProps {
+  readonly entries: readonly Snapshot[];
+  readonly onView: (snapshot: Snapshot) => void;
+  readonly onDownload: (snapshot: Snapshot) => void;
+  readonly onDelete: (id: string) => void;
+}
+
+/** 历史面板（F09）：条目名称自动生成，不提供手填命名控件。 */
+export function HistoryPanel({
+  entries,
+  onView,
+  onDownload,
+  onDelete,
+}: HistoryPanelProps): ReactElement {
+  return (
+    <section className="mt-4" aria-label="历史快照">
+      <h3 className="text-sm font-medium text-slate-700">历史快照（{entries.length}）</h3>
+      {entries.length === 0 ? (
+        <p className="mt-2 text-xs text-slate-400">暂无快照，先在「题目输入」生成并保存。</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {entries.map((entry) => (
+            <li key={entry.id} className="rounded border border-slate-200 p-3">
+              <p className="text-xs text-slate-600">{entry.note}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  data-action="view"
+                  onClick={() => onView(entry)}
+                  className="rounded border border-slate-300 px-3 py-1 text-xs"
+                >
+                  查看
+                </button>
+                <button
+                  type="button"
+                  data-action="redownload"
+                  onClick={() => onDownload(entry)}
+                  className="rounded border border-slate-300 px-3 py-1 text-xs"
+                >
+                  重新下载 ZIP
+                </button>
+                <button
+                  type="button"
+                  data-action="delete"
+                  onClick={() => onDelete(entry.id)}
+                  className="rounded border border-rose-300 px-3 py-1 text-xs text-rose-700"
+                >
+                  删除
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

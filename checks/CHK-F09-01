@@ -1,0 +1,117 @@
+{
+  "checkId": "CHK-F09-01",
+  "feature": "F09",
+  "stack": "common",
+  "items": [
+    {
+      "id": "F09-01",
+      "criterion": "快照版本自动 v_1、v_2 递增",
+      "anchor": "invariant",
+      "expected": "nextVersion([]) === 'v_1'；已有 v_1 时下一版为 'v_2'",
+      "actual": "空列表=v_1, 已有 v_1=v_2, 首版=v_1, 次版=v_2",
+      "verdict": "PASS",
+      "evidence": [
+        "快照 id: v_1-fnv1a-45821aa3 / v_2-fnv1a-45821aa3"
+      ]
+    },
+    {
+      "id": "F09-02",
+      "criterion": "localStorage 写入 / 读取往返一致",
+      "anchor": "parser",
+      "expected": "内存存储适配器写入两份快照后读回，内容与原对象完全一致",
+      "actual": "读回条目=2, 往返一致=true, 存储键=topicstack.snapshots",
+      "verdict": "PASS",
+      "evidence": [
+        "版本序列=v_1,v_2"
+      ]
+    },
+    {
+      "id": "F09-03",
+      "criterion": "restore(snapshot) 重新生成的文件树 hash == manifestSummary.hash（纯文本哈希）",
+      "anchor": "invariant",
+      "expected": "从快照重建后 hashTextFiles 结果等于摘要哈希，且不执行任何生成产物",
+      "actual": "重建哈希=fnv1a-45821aa3, 摘要哈希=fnv1a-45821aa3, 文件数=18/18",
+      "verdict": "PASS",
+      "evidence": [
+        "确定性重建路径数=18"
+      ]
+    },
+    {
+      "id": "F09-04",
+      "criterion": "历史条目名称自动生成（短名 + 版本 + 时间），面板支持查看 / 重新下载 / 删除",
+      "anchor": "invariant",
+      "expected": "note 含短名、版本与时间；ui.tsx 含三个 data-action 入口且无手填命名控件",
+      "actual": "自动命名=true, 面板入口=view,redownload,delete, 无手填命名控件=true",
+      "verdict": "PASS",
+      "evidence": [
+        "note=基于 Java 的 图书… · v_1 · 2026-11-10T00:00:00.000Z ｜ 原始题目：  基于 Java 的  图书馆 管理系统  ",
+        "短名=基于 Java 的 图书…"
+      ]
+    },
+    {
+      "id": "F09-05",
+      "criterion": "rawInput.title 原样出现在快照 note 中（独立锚点 A）",
+      "anchor": "rawInput",
+      "expected": "note 含未经规范化的原始题目字符串，且 config.rawInput.title 未被改写",
+      "actual": "原样出现=true, 锚点未改写=true, 规范化题目不同=true",
+      "verdict": "PASS",
+      "evidence": [
+        "原始题目=\"  基于 Java 的  图书馆 管理系统  \"",
+        "规范化题目=\"基于 Java 的 图书馆 管理系统\""
+      ]
+    },
+    {
+      "id": "F09-06",
+      "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+      "anchor": "parser",
+      "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "锁文件 v3=true, 已安装快照=true",
+        "build/lint 成功戳与 dist 内容哈希一致=true",
+        "前序功能点回归记录全 PASS: F01,F02,F03,F04,F05,F06,F07,F08 => true",
+        "本点测试文件齐备且无跳过标记: true"
+      ]
+    }
+  ],
+  "declaredChecks": 6,
+  "evaluatedChecks": 6,
+  "unknownCount": 0,
+  "evidence": [
+    {
+      "path": "package.json",
+      "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+    },
+    {
+      "path": "checks/runs.json",
+      "sha256": "33e2ff855c5ffd362775957670353a2fb8bd5de6fce2d36b3676961e06a9873f"
+    },
+    {
+      "path": "tests/invariants.ts",
+      "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
+    },
+    {
+      "path": "tests/F09.test.ts",
+      "sha256": "b4c0b456288b065b896d555a949092cd97cf55b2bbbb50ffa219788f9e21581d"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "sha256": "8f3a217d1a4632831cb9a17a87512d67ef0da82a35eb9c153f89047f000eae3f"
+    },
+    {
+      "path": "src/types.ts",
+      "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+    }
+  ],
+  "verdict": "PASS",
+  "createdAt": "2026-11-10T04:23:54.995Z"
+}

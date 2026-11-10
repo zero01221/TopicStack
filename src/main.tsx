@@ -1,7 +1,19 @@
 import { useState, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
+import JSZip from 'jszip';
 import './index.css';
-import { ConfigForm } from './ui';
+import { ConfigForm, HistoryPanel } from './ui';
+import type { FeaturePoint, ProjectConfig, Snapshot } from './types';
+import { generate } from './generate';
+import {
+  buildSnapshot,
+  createMemoryStorage,
+  deleteSnapshot,
+  listSnapshots,
+  restore,
+  saveSnapshot,
+  type StorageLike,
+} from './history';
 
 /**
  * 极简步骤编排：只描述数据流向（录入 → 分析 → 文档 → 交付 → 历史）。
@@ -25,10 +37,64 @@ export const STEP_META: readonly StepMeta[] = [
   { id: 'history', label: '历史快照', summary: '查看与重新下载历史版本' },
 ];
 
-/** 应用外壳：录入步骤接入配置表单，其余步骤由后续功能点增量补齐。 */
+/** 浏览器用 localStorage，缺少该能力时回退到内存存储。 */
+function resolveStorage(): StorageLike {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      return localStorage;
+    }
+  } catch {
+    // 环境不提供 localStorage 时静默回退，不影响页面渲染。
+  }
+  return createMemoryStorage();
+}
+
+const storage: StorageLike = resolveStorage();
+
+/** 应用外壳：录入、历史与其余步骤的增量容器。 */
 export function App(): ReactElement {
   const [current, setCurrent] = useState<Step>('input');
+  const [snapshots, setSnapshots] = useState<readonly Snapshot[]>(() => listSnapshots(storage));
+  const [message, setMessage] = useState<string>('');
   const active: StepMeta = STEP_META.find((item) => item.id === current) ?? STEP_META[0];
+
+  /** 生成交付物、写入快照，历史只存配置与清单摘要。 */
+  const handleGenerate = (config: ProjectConfig, features: readonly FeaturePoint[]): void => {
+    const result = generate({ config, features });
+    const snapshot = buildSnapshot(config, features, result.files, snapshots);
+    saveSnapshot(storage, snapshot);
+    setSnapshots(listSnapshots(storage));
+    setMessage(`已保存 ${snapshot.version}，本次交付物 ${result.files.length} 个`);
+  };
+
+  /** 查看：从快照确定性重建文件树，不执行任何生成代码。 */
+  const handleView = (snapshot: Snapshot): void => {
+    const rebuilt = restore(snapshot);
+    setMessage(`${snapshot.note} ｜ 重建文件 ${rebuilt.files.length} 个`);
+  };
+
+  /** 重新下载 ZIP：按快照重建后打包，文件名自动派生。 */
+  const handleDownload = async (snapshot: Snapshot): Promise<void> => {
+    const rebuilt = restore(snapshot);
+    const zip = new JSZip();
+    for (const file of rebuilt.files) {
+      zip.file(file.path, file.content);
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${snapshot.version}.zip`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /** 删除：从持久化列表移除并刷新界面。 */
+  const handleDelete = (id: string): void => {
+    deleteSnapshot(storage, id);
+    setSnapshots(listSnapshots(storage));
+    setMessage('已删除该快照');
+  };
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -58,10 +124,24 @@ export function App(): ReactElement {
         <h2 className="text-lg font-medium text-slate-800">{active.label}</h2>
         <p className="mt-2 text-sm text-slate-600">{active.summary}</p>
         {current === 'input' ? (
-          <ConfigForm />
+          <ConfigForm onGenerate={handleGenerate} />
+        ) : current === 'history' ? (
+          <HistoryPanel
+            entries={snapshots}
+            onView={handleView}
+            onDownload={(entry) => {
+              void handleDownload(entry);
+            }}
+            onDelete={handleDelete}
+          />
         ) : (
           <p className="mt-4 text-xs text-slate-400">该步骤的界面将在后续功能点逐步接入。</p>
         )}
+        {message.length > 0 ? (
+          <p className="mt-4 rounded bg-slate-50 p-3 text-xs text-slate-600" role="status">
+            {message}
+          </p>
+        ) : null}
       </section>
     </main>
   );
