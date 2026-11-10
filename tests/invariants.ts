@@ -87,6 +87,51 @@ export const F05_EXPECTED = {
   mockStackId: 'newstack',
 } as const;
 
+/** F06：渲染引擎与技术文档的固有属性期望值（全部字面常量）。 */
+export const F06_EXPECTED = {
+  declaredChecks: 6,
+  sections: ['技术栈分析', '开发流程', '目录结构', '环境说明'],
+  techDocPath: 'docs/技术文档.md',
+  sampleTitle: '基于 Java 的图书馆管理系统',
+  placeholderLeftover: '{{',
+} as const;
+
+/** F07：源码注释与讲解材料的固有属性期望值（全部字面常量）。 */
+export const F07_EXPECTED = {
+  declaredChecks: 7,
+  commentKeywords: ['做什么', '为什么'],
+  explainerPath: 'docs/讲解材料.md',
+  followUpHeading: '常见追问与回答要点',
+  minCommentPerMarker: 1,
+} as const;
+
+/** F08：SQL / README / 清单 / 环境自检 / A11 的固有属性期望值（全部字面常量）。 */
+export const F08_EXPECTED = {
+  declaredChecks: 10,
+  boundaryStatement: '本系统不验证你的本机环境；按基准环境准备即可按上述步骤运行',
+  a12Note: '待做',
+  emptyFields: ['进度', '实验数据', '参考文献', '结论'],
+  emptyPlaceholder: '（留空）',
+  a11Paths: ['docs/开题报告框架.md', 'docs/中期检查框架.md', 'docs/答辩PPT大纲.md'],
+  demoNote: '仅限本地演示、首次请改密',
+} as const;
+
+/** F09：快照与历史的固有属性期望值（全部字面常量）。 */
+export const F09_EXPECTED = {
+  declaredChecks: 6,
+  firstVersion: 'v_1',
+  secondVersion: 'v_2',
+  storageKey: 'topicstack.snapshots',
+} as const;
+
+/** F10：ZIP 导出与全链路联调的固有属性期望值（全部字面常量）。 */
+export const F10_EXPECTED = {
+  declaredChecks: 6,
+  totalRecords: 10,
+  regressionItems: 9,
+  finalRecordPath: 'checks/CHK-FINAL.json',
+} as const;
+
 /** 未知即失败：任何非 PASS / FAIL 的取值都归一为 UNKNOWN，交由调用方计为失败。 */
 export function normalizeVerdict(value: unknown): Verdict {
   if (value === 'PASS' || value === 'FAIL') {

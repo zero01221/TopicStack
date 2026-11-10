@@ -66,6 +66,11 @@ const FEATURE_META = Object.freeze({
   F03: { stack: 'common', declaredChecks: 6 },
   F04: { stack: 'common', declaredChecks: 7 },
   F05: { stack: 'java/python', declaredChecks: 7 },
+  F06: { stack: 'common', declaredChecks: 6 },
+  F07: { stack: 'java/python', declaredChecks: 7 },
+  F08: { stack: 'java/python', declaredChecks: 10 },
+  F09: { stack: 'common', declaredChecks: 6 },
+  F10: { stack: 'common', declaredChecks: 6 },
 });
 
 /** 版本 / 账号字面量扫描规则：用于静态扫描规范化模块与两张栈模板表。 */
@@ -680,6 +685,7 @@ function ensureTsCache() {
     }
   };
   walk('src');
+  walk('tests');
   tsCacheReady = true;
 }
 
@@ -1535,12 +1541,148 @@ async function f05Items() {
   return items;
 }
 
+/** 构造 F06~F10 判据共用的标准输入（真实调用 normalize / recommendFeatures）。 */
+async function standardGenerateInput(title) {
+  const project = await importTs('src/project.ts');
+  const featuresModule = await importTs('src/features.ts');
+  return {
+    config: project.normalize({ title }).config,
+    features: featuresModule.recommendFeatures(title).features,
+  };
+}
+
+/** F06：渲染引擎与技术文档的六条判据。 */
+async function f06Items() {
+  const items = [];
+  const generator = await importTs('src/generate.ts');
+  const inv = await importTs('tests/invariants.ts');
+  const baseline = engineeringBaseline('F06', ['F01', 'F02', 'F03', 'F04', 'F05']);
+  const input = await standardGenerateInput(inv.F06_EXPECTED.sampleTitle);
+
+  items.push(await safeItem(
+    'F06-01',
+    '同一输入连续两次 generate() 输出全等（确定性）',
+    'invariant',
+    '两次生成的文件树深比较完全相等，且纯文本哈希相等',
+    async () => {
+      const first = generator.generate(input);
+      const second = generator.generate(input);
+      const deep = JSON.stringify(first.files) === JSON.stringify(second.files);
+      const hash = generator.hashTextFiles(first.files) === generator.hashTextFiles(second.files);
+      return {
+        ok: deep && hash && first.files.length > 0,
+        actual: `深比较相等=${deep}, 哈希相等=${hash}, 文件数=${first.files.length}`,
+        evidence: [`哈希=${generator.hashTextFiles(first.files)}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F06-02',
+    'docs/技术文档.md 含「技术栈分析」「开发流程」两节且栈名 / 版本取自 config',
+    'parser',
+    '四节标题齐全；技术栈标识与五个版本值均来自 ProjectConfig',
+    async () => {
+      const result = generator.generate(input);
+      const doc = generator.findFile(result.files, inv.F06_EXPECTED.techDocPath);
+      const text = doc ?? '';
+      const sectionsOk = inv.F06_EXPECTED.sections.every(
+        (section) => text.includes(`## ${section}`),
+      );
+      const stackOk = text.includes(input.config.stackId) && text.includes(result.stackId);
+      const versionsOk = Object.values(input.config.versions).every(
+        (value) => text.includes(value),
+      );
+      return {
+        ok: Boolean(doc) && sectionsOk && stackOk && versionsOk,
+        actual: `文档存在=${Boolean(doc)}, 四节齐全=${sectionsOk}, 栈名同源=${stackOk}, 五版本同源=${versionsOk}`,
+        evidence: [`文档字符数=${text.length}`, `版本值=${Object.values(input.config.versions).join(' / ')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F06-03',
+    '渲染器遇未替换占位符抛错（非静默放过）',
+    'invariant',
+    'renderTemplate 对未知键抛出含「未替换占位符」的异常；已知键正常渲染',
+    async () => {
+      let rejected = false;
+      let message = '';
+      try {
+        generator.renderTemplate('前缀 {{missing.key}} 后缀', {}, '判据测试');
+      } catch (error) {
+        rejected = true;
+        message = String(error?.message ?? error);
+      }
+      const normal = generator.renderTemplate('{{known}}', { known: '值' }, '判据测试');
+      return {
+        ok: rejected && message.includes('未替换占位符') && normal === '值',
+        actual: `抛错=${rejected}, 信息="${message}", 正常渲染="${normal}"`,
+        evidence: ['未知占位符键: missing.key'],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F06-04',
+    '输出中不含占位符残留',
+    'invariant',
+    '全部交付物内容均不含占位符起始符',
+    async () => {
+      const result = generator.generate(input);
+      const dirty = result.files
+        .filter((file) => file.content.includes(inv.F06_EXPECTED.placeholderLeftover))
+        .map((file) => file.path);
+      return {
+        ok: dirty.length === 0 && result.files.length > 0,
+        actual: `残留文件=${dirty.join(',') || '无'}, 交付物数=${result.files.length}`,
+        evidence: result.files.map((file) => `${file.path}(${file.content.length}字符)`),
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F06-05',
+    '固有属性断言：文档章节标题齐全（期望值外置在 invariants.ts）',
+    'invariant',
+    "章节期望值来自 tests/invariants.ts 的硬编码字面常量，且实际标题逐项命中",
+    async () => {
+      const expected = [...inv.F06_EXPECTED.sections];
+      const doc = generator.findFile(
+        generator.generate(input).files,
+        inv.F06_EXPECTED.techDocPath,
+      ) ?? '';
+      const headings = [...doc.matchAll(/^##\s+(.+)$/gm)].map((entry) => entry[1].trim());
+      const hit = expected.every((section) => headings.includes(section));
+      return {
+        ok: Array.isArray(expected) && expected.length === 4 && hit,
+        actual: `外置期望=${expected.join(',')}, 实际标题=${headings.join(',')}`,
+        evidence: ['期望值读取自 tests/invariants.ts，不来自生成结果'],
+      };
+    },
+  ));
+
+  items.push(makeItem(
+    'F06-06',
+    '构建 + 全量回归通过（工程侧机器证据）',
+    'parser',
+    'build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备',
+    baseline.ok ? '全部条件成立' : '存在未成立条件',
+    baseline.ok ? 'PASS' : 'FAIL',
+    baseline.evidence,
+  ));
+
+  return items;
+}
+
 /** 已实现功能点的判据构造器表；后续功能点逐个登记，未登记一律 BLOCKED。 */
 const FEATURE_BUILDERS = Object.freeze({
   F02: f02Items,
   F03: f03Items,
   F04: f04Items,
   F05: f05Items,
+  F06: f06Items,
 });
 
 const argument = process.argv[2] ?? '';

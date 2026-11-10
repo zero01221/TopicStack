@@ -637,5 +637,121 @@
     ],
     "verdict": "PASS",
     "createdAt": "2026-11-10T03:50:20.986Z"
+  },
+  {
+    "checkId": "CHK-F06-01",
+    "feature": "F06",
+    "stack": "common",
+    "items": [
+      {
+        "id": "F06-01",
+        "criterion": "同一输入连续两次 generate() 输出全等（确定性）",
+        "anchor": "invariant",
+        "expected": "两次生成的文件树深比较完全相等，且纯文本哈希相等",
+        "actual": "深比较相等=true, 哈希相等=true, 文件数=1",
+        "verdict": "PASS",
+        "evidence": [
+          "哈希=fnv1a-8fc224fb"
+        ]
+      },
+      {
+        "id": "F06-02",
+        "criterion": "docs/技术文档.md 含「技术栈分析」「开发流程」两节且栈名 / 版本取自 config",
+        "anchor": "parser",
+        "expected": "四节标题齐全；技术栈标识与五个版本值均来自 ProjectConfig",
+        "actual": "文档存在=true, 四节齐全=true, 栈名同源=true, 五版本同源=true",
+        "verdict": "PASS",
+        "evidence": [
+          "文档字符数=1123",
+          "版本值=JDK 17 / Spring Boot 3.2.x / MySQL 8.0 / React 18 + Vite 5 / Node 20 LTS"
+        ]
+      },
+      {
+        "id": "F06-03",
+        "criterion": "渲染器遇未替换占位符抛错（非静默放过）",
+        "anchor": "invariant",
+        "expected": "renderTemplate 对未知键抛出含「未替换占位符」的异常；已知键正常渲染",
+        "actual": "抛错=true, 信息=\"[渲染引擎] 判据测试 存在未替换占位符: missing.key\", 正常渲染=\"值\"",
+        "verdict": "PASS",
+        "evidence": [
+          "未知占位符键: missing.key"
+        ]
+      },
+      {
+        "id": "F06-04",
+        "criterion": "输出中不含占位符残留",
+        "anchor": "invariant",
+        "expected": "全部交付物内容均不含占位符起始符",
+        "actual": "残留文件=无, 交付物数=1",
+        "verdict": "PASS",
+        "evidence": [
+          "docs/技术文档.md(1123字符)"
+        ]
+      },
+      {
+        "id": "F06-05",
+        "criterion": "固有属性断言：文档章节标题齐全（期望值外置在 invariants.ts）",
+        "anchor": "invariant",
+        "expected": "章节期望值来自 tests/invariants.ts 的硬编码字面常量，且实际标题逐项命中",
+        "actual": "外置期望=技术栈分析,开发流程,目录结构,环境说明, 实际标题=技术栈分析,开发流程,目录结构,环境说明",
+        "verdict": "PASS",
+        "evidence": [
+          "期望值读取自 tests/invariants.ts，不来自生成结果"
+        ]
+      },
+      {
+        "id": "F06-06",
+        "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+        "anchor": "parser",
+        "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+        "actual": "全部条件成立",
+        "verdict": "PASS",
+        "evidence": [
+          "锁文件 v3=true, 已安装快照=true",
+          "build/lint 成功戳与 dist 内容哈希一致=true",
+          "前序功能点回归记录全 PASS: F01,F02,F03,F04,F05 => true",
+          "本点测试文件齐备且无跳过标记: true"
+        ]
+      }
+    ],
+    "declaredChecks": 6,
+    "evaluatedChecks": 6,
+    "unknownCount": 0,
+    "evidence": [
+      {
+        "path": "package.json",
+        "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+      },
+      {
+        "path": "README.md",
+        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+      },
+      {
+        "path": "checks/runs.json",
+        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+      },
+      {
+        "path": "tests/invariants.ts",
+        "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
+      },
+      {
+        "path": "tests/F06.test.ts",
+        "sha256": "c42d2126cae2ccf6c155d09299d36abd3b7cdebb77dff99968842ad2dca8a99f"
+      },
+      {
+        "path": "scripts/check.mjs",
+        "sha256": "b6fbf973e3926654b123d48368a03b44d6755dfe5f4d640f346a416f57fa1810"
+      },
+      {
+        "path": "src/types.ts",
+        "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+      }
+    ],
+    "verdict": "PASS",
+    "createdAt": "2026-11-10T04:05:23.406Z"
   }
 ]
