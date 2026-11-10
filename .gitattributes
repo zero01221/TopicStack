@@ -1,0 +1,11 @@
+# 固定所有文本文件在索引与工作区均使用 LF，保证证据哈希跨检出可复现。
+# QA 反馈 L-01：core.autocrlf=true 的干净克隆会把 LF 转 CRLF，导致
+# evidence 的 sha256、runs.json 的 distHash 以及「字符数」证据发生变化。
+* text=auto eol=lf
+
+# 明确声明二进制与压缩包不参与行尾归一化。
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary

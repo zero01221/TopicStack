@@ -72,14 +72,15 @@
     },
     {
       "id": "F07-06",
-      "criterion": "静态断言 scripts/check.mjs 未调用任何编译 / 运行 / 安装命令",
+      "criterion": "静态能力面约束：判据入口不加载子进程 / 网络 / VM 模块、不出现执行调用、动态 import 参数静态可解析",
       "anchor": "invariant",
-      "expected": "判据入口不加载子进程模块、不出现命令执行调用（明确不编译、不执行生成产物）",
-      "actual": "子进程/执行调用命中=无, require 调用=false, 模块白名单通过=true",
+      "expected": "AST 级 import 白名单 + 扩充禁用词元 + 拼接式动态 import 负向自测；明确不编译、不执行生成产物",
+      "actual": "AST import 通过=true, 模块数=7, 禁用词元=无, require=false, 镜像清单无漂移=true, 拼接式动态 import 被拦截=true, 注册表仅本地相对导入=true",
       "verdict": "PASS",
       "evidence": [
-        "判据入口导入模块: node:fs, node:crypto, node:path, node:url, typescript, jszip",
-        "扫描字符数=103444"
+        "判据入口导入模块: node:fs, node:crypto, node:path, node:url, typescript, jszip, ../.tscache/registry.mjs",
+        "违规项: 无",
+        "口径：静态能力面约束——不加载子进程/网络/VM 模块、不出现执行调用、动态 import 参数静态可解析"
       ]
     },
     {
@@ -111,7 +112,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
+      "sha256": "cb237ea2004eb7e8cd23eb593e626e83ed694056ec8dd6e5fcaa9b2221ad3867"
     },
     {
       "path": "checks/runs.json",
@@ -127,7 +128,7 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
+      "sha256": "add0be80630fc7c3a3aba951862be4bc11499d26336b3f4659e5daa472eac675"
     },
     {
       "path": "src/types.ts",
@@ -135,5 +136,5 @@
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T04:34:22.858Z"
+  "createdAt": "2026-11-10T07:13:51.257Z"
 }

@@ -2,20 +2,22 @@
 /**
  * TopicStack 统一判据入口（F01 建立，F02~F10 复用）。
  *
- * 能力边界：只读文件 + 通用标准解析器（JSON.parse / 正则 / XML 标签配对 /
- * TypeScript compiler API 语法转译）+ 写验收记录；不调用任何编译、运行或安装命令，
- * 也不执行任何生成产物。转译仅用于让判据直接调用本系统自身的纯函数。
+ * 能力边界（静态能力面约束）：只读文件 + 通用标准解析器（JSON.parse / 正则 /
+ * XML 标签配对 / TypeScript compiler API 语法转译）+ 写验收记录；
+ * 不加载子进程 / 网络 / VM 模块、不出现执行调用、动态 import 参数静态可解析，
+ * 不调用任何编译、运行或安装命令，也不执行任何生成产物。
+ * 转译仅用于让判据直接调用本系统自身的纯函数。
  *
  * 四种模式：
  *   node scripts/check.mjs --lint           静态代码检查（由 npm run lint 调用）
  *   node scripts/check.mjs --stamp=build    构建成功后写机器证据（由 npm run build 调用）
  *   node scripts/check.mjs F01              执行 F01 六条判据（原样保留）
- *   node scripts/check.mjs F0n              执行 F02~F05 判据并产出 AcceptanceRecord
+ *   node scripts/check.mjs F0n              执行 F02~F10 判据并产出 AcceptanceRecord
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, join, relative, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import JSZip from 'jszip';
 
@@ -54,11 +56,15 @@ const LINT_STATIC_FILES = Object.freeze([
 ]);
 
 /**
- * 判据入口允许加载的模块白名单：证明本脚本不触碰子进程 / 网络 / 外部服务；
- * typescript 仅用其编译器 API 做语法转译，不编译也不执行任何生成产物。
+ * 静态能力面白名单：判据入口只加载下列模块，不触碰子进程 / 网络 / VM / 外部服务。
+ * typescript 仅用其编译器 API 做语法转译；jszip 仅解包文本；
+ * 最后一项是本地生成的转译注册表（由 ensureTsCache 写出，只含 .tscache 内静态相对导入）。
+ * F07-06 会用 AST 逐条核对静态 import 与动态 import(...) 的模块名，并与
+ * tests/capability.ts 的镜像清单比对防漂移。
  */
 const ALLOWED_IMPORTS = Object.freeze([
   'node:fs', 'node:crypto', 'node:path', 'node:url', 'typescript', 'jszip',
+  '../.tscache/registry.mjs',
 ]);
 
 /** 功能点元数据：stack 与应校验项数均为硬编码期望值，与实现无关。 */
@@ -199,7 +205,7 @@ function runStamp(phase) {
 }
 
 /** 静态检查：八条规则逐条显式判定，任一 FAIL 即返回 false。 */
-function runLint() {
+async function runLint() {
   const results = [];
   const add = (id, ok, detail) => results.push({ id, ok, detail });
 
@@ -270,15 +276,17 @@ function runLint() {
   );
 
   const selfSource = sources.get('scripts/check.mjs') ?? '';
-  const importedModules = [...selfSource.matchAll(/from\s+'([^']+)'/g)].map((entry) => entry[1]);
-  const importsOk = importedModules.length > 0
-    && importedModules.every((moduleName) => ALLOWED_IMPORTS.includes(moduleName));
+  // AST 级 import 审计：覆盖静态 import 与动态 import(...)，后者的参数
+  // 必须是静态字符串字面量且在白名单内（B-01 补强，替代原先的正则匹配）。
+  const capability = await importTs('tests/capability.ts');
+  const importAudit = capability.auditModuleImports(selfSource, ALLOWED_IMPORTS);
+  const importsOk = importAudit.ok && importAudit.moduleNames.length > 0;
   add(
     'L7',
     importsOk,
     importsOk
-      ? `判据入口仅加载白名单模块: ${importedModules.join(', ')}`
-      : `判据入口加载了非白名单模块: ${importedModules.join(', ')}`,
+      ? `AST 级 import 审计通过，白名单模块: ${importAudit.moduleNames.join(', ')}`
+      : `AST 级 import 审计未通过: ${importAudit.violations.join(' | ') || '无模块名'}`,
   );
 
   const cssSource = sources.get('src/index.css') ?? '';
@@ -616,6 +624,47 @@ function runF01() {
 const TS_CACHE_DIR = join(ROOT, '.tscache');
 let tsCacheReady = false;
 
+/**
+ * 判据实际会载入的 TS 模块清单。转译注册表只对它们做静态相对导入，
+ * 避免把测试文件（依赖 vitest）或含 CSS 导入的入口文件卷进模块图。
+ */
+const TS_CACHE_MODULES = Object.freeze([
+  'src/types.ts',
+  'src/project.ts',
+  'src/features.ts',
+  'src/stacks/index.ts',
+  'src/stacks/java.ts',
+  'src/stacks/python.ts',
+  'src/generate.ts',
+  'src/history.ts',
+  'src/zip.ts',
+  'tests/invariants.ts',
+  'tests/capability.ts',
+]);
+
+/**
+ * 生成本地转译注册表：用静态字符串字面量导入所有缓存模块，
+ * 使 check.mjs 自身的动态 import(...) 参数是静态可解析的字符串，
+ * 不再出现「拼接模块名 / 标识符表达式」这类无法静态判定的形态。
+ */
+function writeTsRegistry() {
+  const lines = [];
+  TS_CACHE_MODULES.forEach((rel, index) => {
+    lines.push(`import * as m${index} from './${rel.replace(/\.tsx?$/, '.mjs')}';`);
+  });
+  lines.push('const MODULES = {');
+  TS_CACHE_MODULES.forEach((rel, index) => {
+    lines.push(`  ${JSON.stringify(rel)}: m${index},`);
+  });
+  lines.push('};');
+  lines.push('export function loadModule(relPath) {');
+  lines.push('  const found = MODULES[relPath];');
+  lines.push('  if (!found) { throw new Error(`[转译缓存] 未登记模块: ${relPath}`); }');
+  lines.push('  return found;');
+  lines.push('}');
+  writeFileSync(join(TS_CACHE_DIR, 'registry.mjs'), `${lines.join('\n')}\n`, 'utf8');
+}
+
 /** 抽取源码中的字符串字面量，用于版本 / 账号字面量的静态扫描。 */
 function extractStringLiterals(source) {
   const literals = [];
@@ -687,14 +736,17 @@ function ensureTsCache() {
   };
   walk('src');
   walk('tests');
+  writeTsRegistry();
   tsCacheReady = true;
 }
 
 /** 载入本系统自身的 TS 模块（真实实现，非替身）。 */
 async function importTs(relPath) {
   ensureTsCache();
-  const target = join(TS_CACHE_DIR, relPath.replace(/\.tsx?$/, '.mjs'));
-  return import(pathToFileURL(target).href);
+  // 动态 import 的参数是静态字符串字面量，且位于 ALLOWED_IMPORTS 白名单内，
+  // 因此可被 AST 级能力面审计完整判定；注册表本身只做本地静态相对导入。
+  const registry = await import('../.tscache/registry.mjs');
+  return registry.loadModule(relPath);
 }
 
 /** 单条判据的安全执行器：异常一律转成可行动的 FAIL，绝不产生 UNKNOWN。 */
@@ -1864,30 +1916,29 @@ async function f07Items() {
 
   items.push(await safeItem(
     'F07-06',
-    '静态断言 scripts/check.mjs 未调用任何编译 / 运行 / 安装命令',
+    '静态能力面约束：判据入口不加载子进程 / 网络 / VM 模块、不出现执行调用、动态 import 参数静态可解析',
     'invariant',
-    '判据入口不加载子进程模块、不出现命令执行调用（明确不编译、不执行生成产物）',
+    'AST 级 import 白名单 + 扩充禁用词元 + 拼接式动态 import 负向自测；明确不编译、不执行生成产物',
     async () => {
       const selfSource = readText('scripts/check.mjs');
-      // 只扫描「能力面」词元：JS 脚本若不加载子进程模块、不出现执行调用，
-      // 就不可能发起编译 / 运行 / 安装命令。这些词元用拼接构造，不会自命中，
-      // 也不会像描述性文字那样产生误报。
-      const bannedApis = [
-        'child' + '_process',
-        'exec' + 'Sync',
-        'spawn' + 'Sync',
-        'exec' + '(',
-        'spawn' + '(',
-      ];
-      const hits = bannedApis.filter((token) => selfSource.includes(token));
-      const requireCalls = /\brequire\s*\(/.test(selfSource);
-      const importedModules = [...selfSource.matchAll(/from\s+'([^']+)'/g)].map((entry) => entry[1]);
-      const importsOk = importedModules.length > 0
-        && importedModules.every((name) => ALLOWED_IMPORTS.includes(name));
+      const capability = await importTs('tests/capability.ts');
+      const audit = capability.auditCapability(selfSource, ALLOWED_IMPORTS);
+      const mirrored = [...capability.CAPABILITY_ALLOWED_IMPORTS];
+      const noDrift = JSON.stringify(mirrored) === JSON.stringify([...ALLOWED_IMPORTS]);
+      // 负向自测：构造拼接式动态 import 的假脚本，确认判据确实能拦截（B-01）。
+      const fakeBypass = "const m = await import('node:' + 'child_' + 'process');";
+      const negative = capability.auditModuleImports(fakeBypass, ALLOWED_IMPORTS);
+      // 本地转译注册表只允许本地静态相对导入，不引入裸能力模块。
+      const registry = exists('.tscache/registry.mjs') ? readText('.tscache/registry.mjs') : '';
+      const registryClean = registry.length > 0 && !/from\s+['"](?!\.)/.test(registry);
       return {
-        ok: hits.length === 0 && !requireCalls && importsOk,
-        actual: `子进程/执行调用命中=${hits.join(',') || '无'}, require 调用=${requireCalls}, 模块白名单通过=${importsOk}`,
-        evidence: [`判据入口导入模块: ${importedModules.join(', ')}`, `扫描字符数=${selfSource.length}`],
+        ok: audit.ok && noDrift && !negative.ok && registryClean,
+        actual: `AST import 通过=${audit.importAudit.ok}, 模块数=${audit.importAudit.moduleNames.length}, 禁用词元=${audit.bannedHits.join(',') || '无'}, require=${audit.requireCalls}, 镜像清单无漂移=${noDrift}, 拼接式动态 import 被拦截=${!negative.ok}, 注册表仅本地相对导入=${registryClean}`,
+        evidence: [
+          `判据入口导入模块: ${audit.importAudit.moduleNames.join(', ')}`,
+          `违规项: ${audit.importAudit.violations.join(' | ') || '无'}`,
+          '口径：静态能力面约束——不加载子进程/网络/VM 模块、不出现执行调用、动态 import 参数静态可解析',
+        ],
       };
     },
   ));
@@ -2591,8 +2642,8 @@ async function writeFinalRegression() {
       };
     }));
 
-  items.push(await safeItem('R-09', '提交证据完整性、边界声明与无 push', 'invariant',
-    '十份 AcceptanceRecord 全 PASS；README 含边界声明原句；判据入口不含 push 动作',
+  items.push(await safeItem('R-09', '提交证据完整性、边界声明、静态能力面与无 push', 'invariant',
+    '十份 AcceptanceRecord 全 PASS；README 含边界声明原句；判据入口静态能力面审计通过且不含 push 动作',
     async () => {
       const records = safeJson('checks/records.json');
       const allRecords = Array.isArray(records.value)
@@ -2601,12 +2652,19 @@ async function writeFinalRegression() {
           && entry.declaredChecks === entry.evaluatedChecks
           && entry.unknownCount === 0);
       const boundary = readText('README.md').includes(inv.F08_EXPECTED.boundaryStatement);
-      // 判据入口源码中不得出现 push 动作（用拼接词元避免自命中）。
-      const noPush = !readText('scripts/check.mjs').includes('git' + ' push');
+      // 静态能力面约束：AST 级 import 白名单、禁用词元、动态 import 参数静态可解析；
+      // 另以拼接词元确认判据入口不含 push 动作（避免自命中）。
+      const selfSource = readText('scripts/check.mjs');
+      const capability = await importTs('tests/capability.ts');
+      const capabilityOk = capability.auditCapability(selfSource, ALLOWED_IMPORTS).ok;
+      const noPush = !selfSource.includes('git' + ' push');
       return {
-        ok: allRecords && boundary && noPush,
-        actual: `十份记录全 PASS=${allRecords}, 边界声明=${boundary}, 判据入口无 push=${noPush}`,
-        evidence: [`台账条目数=${Array.isArray(records.value) ? records.value.length : 0}`],
+        ok: allRecords && boundary && capabilityOk && noPush,
+        actual: `十份记录全 PASS=${allRecords}, 边界声明=${boundary}, 静态能力面通过=${capabilityOk}, 判据入口无 push=${noPush}`,
+        evidence: [
+          `台账条目数=${Array.isArray(records.value) ? records.value.length : 0}`,
+          '口径：静态能力面约束，非「不可能发起命令」的绝对声明',
+        ],
       };
     }));
 
@@ -2826,7 +2884,7 @@ const argument = process.argv[2] ?? '';
 if (argument.startsWith('--stamp=')) {
   runStamp(argument.slice('--stamp='.length));
 } else if (argument === '--lint') {
-  const ok = runLint();
+  const ok = await runLint();
   if (ok) {
     runStamp('lint');
   }

@@ -98,13 +98,14 @@
     },
     {
       "id": "R-09",
-      "criterion": "提交证据完整性、边界声明与无 push",
+      "criterion": "提交证据完整性、边界声明、静态能力面与无 push",
       "anchor": "invariant",
-      "expected": "十份 AcceptanceRecord 全 PASS；README 含边界声明原句；判据入口不含 push 动作",
-      "actual": "十份记录全 PASS=true, 边界声明=true, 判据入口无 push=true",
+      "expected": "十份 AcceptanceRecord 全 PASS；README 含边界声明原句；判据入口静态能力面审计通过且不含 push 动作",
+      "actual": "十份记录全 PASS=true, 边界声明=true, 静态能力面通过=true, 判据入口无 push=true",
       "verdict": "PASS",
       "evidence": [
-        "台账条目数=10"
+        "台账条目数=10",
+        "口径：静态能力面约束，非「不可能发起命令」的绝对声明"
       ]
     }
   ],
@@ -114,11 +115,11 @@
   "evidence": [
     {
       "path": "checks/records.json",
-      "sha256": "a0c91cdb3484ff0759fb013b025990d924bcb3d7424b46a910f2c77943c291e3"
+      "sha256": "010cd010d03abb08d21ec02c6ac8c96cde3c19efb86082cd9e7eb7b33ae5da1d"
     },
     {
       "path": "README.md",
-      "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
+      "sha256": "cb237ea2004eb7e8cd23eb593e626e83ed694056ec8dd6e5fcaa9b2221ad3867"
     },
     {
       "path": "src/generate.ts",
@@ -126,5 +127,5 @@
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T04:34:26.427Z"
+  "createdAt": "2026-11-10T07:13:54.267Z"
 }

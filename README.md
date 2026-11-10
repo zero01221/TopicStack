@@ -60,7 +60,7 @@ npm run build
 npm run test
 ```
 
-预期结果：vitest 输出 `tests/F01.test.ts` … `tests/F10.test.ts` 全部断言 PASS，退出码 0。
+预期结果：vitest 输出 `tests/F01.test.ts` … `tests/F10.test.ts` 与 `tests/B01.test.ts`（判据负向自测）共 **11 个测试文件 / 77 个断言**全部 PASS，退出码 0。
 
 ### 步骤 5 · 静态检查
 
@@ -104,6 +104,8 @@ npm run check -- F01
 | `src/ui.tsx` | 配置表单、功能点编辑器、异常提示条与历史面板 |
 | `tests/invariants.ts` | 固有属性断言集：期望值全部为硬编码字面常量，不读取派生配置 |
 | `tests/F01.test.ts` … `tests/F10.test.ts` | 每功能点一个纯函数断言测试 |
+| `tests/capability.ts` | 判据能力面 AST 审计纯函数（B-01 补强） |
+| `tests/B01.test.ts` | 拼接式动态 import 负向自测用例 |
 | `scripts/check.mjs` | 统一判据入口：只读文件 + 通用解析器判定 + 生成验收记录 |
 | `checks/CHK-F0n-01` | 各功能点单次验收记录（AcceptanceRecord） |
 | `checks/CHK-FINAL.json` | 九项全量回归收口记录 |
