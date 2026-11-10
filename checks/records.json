@@ -31,7 +31,7 @@
         "evidence": [
           "dist/index.html 存在: true",
           "根容器 id=\"root\": true",
-          "构建后 JS 资源: /assets/index-_oScPB29.js",
+          "构建后 JS 资源: /assets/index-xTpCznZE.js",
           "资源文件实际存在: true"
         ]
       },
@@ -51,11 +51,11 @@
         "id": "F01-04",
         "criterion": "README 每条命令 ∈ scripts ∪ {npm ci, npm install}",
         "anchor": "parser",
-        "expected": "全部 13 条命令可解析且脚本名 ∈ dev,build,test,lint,check,ci,install；含 npm ci 与 npm run dev",
-        "actual": "命令数=13, 违规=0, 含 ci/dev=YES",
+        "expected": "全部 11 条命令可解析且脚本名 ∈ dev,build,test,lint,check,ci,install；含 npm ci 与 npm run dev",
+        "actual": "命令数=11, 违规=0, 含 ci/dev=YES",
         "verdict": "PASS",
         "evidence": [
-          "README 命令清单: npm ci | npm ci | npm run dev | npm install | npm run build | npm run test | npm run lint | npm run check -- F01 | npm ci | npm install | npm ci | npm run build | npm run check -- F01",
+          "README 命令清单: npm ci | npm ci | npm run dev | npm run build | npm run test | npm run lint | npm run check -- F01 | npm ci | npm ci | npm run build | npm run check -- F01",
           "允许脚本集合: dev, build, test, lint, check, ci, install",
           "违规命令数: 0"
         ]
@@ -81,7 +81,7 @@
         "actual": "期望值外置、无外部加载、字面常量与助手齐备",
         "verdict": "PASS",
         "evidence": [
-          "静态扫描目标: tests/invariants.ts (5044 字符)",
+          "静态扫描目标: tests/invariants.ts (6256 字符)",
           "禁止引用命中: 无",
           "外部模块加载: false",
           "字面常量数组存在: true",
@@ -103,19 +103,19 @@
       },
       {
         "path": "README.md",
-        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
       },
       {
         "path": "dist/index.html",
-        "sha256": "05c6fb4b046380b5733cae69373526255c37c2985420a42c74ec56d4c74e0197"
+        "sha256": "3fe7e6c61aeb1d0cb6291b5caae4d23cfa6d9428b1bd3a2ba97198c4571616c7"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
       },
       {
         "path": "tests/invariants.ts",
-        "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+        "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
       },
       {
         "path": "tests/F01.test.ts",
@@ -123,11 +123,11 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T03:50:55.679Z"
+    "createdAt": "2026-11-10T04:34:15.816Z"
   },
   {
     "checkId": "CHK-F02-01",
@@ -233,15 +233,15 @@
       },
       {
         "path": "README.md",
-        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
       },
       {
         "path": "tests/invariants.ts",
-        "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+        "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
       },
       {
         "path": "tests/F02.test.ts",
@@ -249,7 +249,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
       },
       {
         "path": "src/types.ts",
@@ -257,7 +257,7 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T03:50:56.803Z"
+    "createdAt": "2026-11-10T04:34:16.965Z"
   },
   {
     "checkId": "CHK-F03-01",
@@ -297,7 +297,7 @@
         "verdict": "PASS",
         "evidence": [
           "src/main.tsx 步骤枚举: input | analysis | techdoc | deliverables | history",
-          "src/ui.tsx 字符数=13300"
+          "src/ui.tsx 字符数=17083"
         ]
       },
       {
@@ -352,15 +352,15 @@
       },
       {
         "path": "README.md",
-        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
       },
       {
         "path": "tests/invariants.ts",
-        "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+        "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
       },
       {
         "path": "tests/F03.test.ts",
@@ -368,7 +368,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
       },
       {
         "path": "src/types.ts",
@@ -376,7 +376,7 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T03:50:57.972Z"
+    "createdAt": "2026-11-10T04:34:18.133Z"
   },
   {
     "checkId": "CHK-F04-01",
@@ -480,15 +480,15 @@
       },
       {
         "path": "README.md",
-        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
       },
       {
         "path": "tests/invariants.ts",
-        "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+        "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
       },
       {
         "path": "tests/F04.test.ts",
@@ -496,7 +496,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
       },
       {
         "path": "src/types.ts",
@@ -504,7 +504,7 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T03:50:59.170Z"
+    "createdAt": "2026-11-10T04:34:19.325Z"
   },
   {
     "checkId": "CHK-F05-01",
@@ -542,8 +542,8 @@
         "actual": "Java 命中=无, Python 命中=无, 引用建议默认值表=true",
         "verdict": "PASS",
         "evidence": [
-          "src/stacks/java.ts (3611 字符)",
-          "src/stacks/python.ts (2949 字符)",
+          "src/stacks/java.ts (4070 字符)",
+          "src/stacks/python.ts (3418 字符)",
           "规则: 版本号 / 版本串 / 演示账号 / 账号口令"
         ]
       },
@@ -579,8 +579,8 @@
         "actual": "XML 标签配对=true, 依赖行合法=true(内容行 4), 文件名正确=true",
         "verdict": "PASS",
         "evidence": [
-          "pom.xml 模板字符数=594",
-          "requirements.txt 模板字符数=152"
+          "pom.xml 模板字符数=592",
+          "requirements.txt 模板字符数=151"
         ]
       },
       {
@@ -612,15 +612,15 @@
       },
       {
         "path": "README.md",
-        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
       },
       {
         "path": "tests/invariants.ts",
-        "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+        "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
       },
       {
         "path": "tests/F05.test.ts",
@@ -628,7 +628,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
       },
       {
         "path": "src/types.ts",
@@ -636,7 +636,7 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T03:50:20.986Z"
+    "createdAt": "2026-11-10T04:34:20.502Z"
   },
   {
     "checkId": "CHK-F06-01",
@@ -648,10 +648,10 @@
         "criterion": "同一输入连续两次 generate() 输出全等（确定性）",
         "anchor": "invariant",
         "expected": "两次生成的文件树深比较完全相等，且纯文本哈希相等",
-        "actual": "深比较相等=true, 哈希相等=true, 文件数=1",
+        "actual": "深比较相等=true, 哈希相等=true, 文件数=18",
         "verdict": "PASS",
         "evidence": [
-          "哈希=fnv1a-8fc224fb"
+          "哈希=fnv1a-ec1e3499"
         ]
       },
       {
@@ -682,10 +682,27 @@
         "criterion": "输出中不含占位符残留",
         "anchor": "invariant",
         "expected": "全部交付物内容均不含占位符起始符",
-        "actual": "残留文件=无, 交付物数=1",
+        "actual": "残留文件=无, 交付物数=18",
         "verdict": "PASS",
         "evidence": [
-          "docs/技术文档.md(1123字符)"
+          "docs/技术文档.md(1123字符)",
+          "frontend/package.json(142字符)",
+          "frontend/index.html(229字符)",
+          "frontend/src/main.tsx(444字符)",
+          "frontend/src/api.ts(482字符)",
+          "frontend/src/LoginForm.tsx(677字符)",
+          "backend/pom.xml(515字符)",
+          "backend/src/main/java/Application.java(516字符)",
+          "backend/src/main/java/controller/Controller.java(526字符)",
+          "backend/src/main/java/service/Service.java(511字符)",
+          "backend/src/main/java/mapper/Mapper.java(506字符)",
+          "backend/src/main/java/auth/AuthService.java(559字符)",
+          "sql/schema.sql(459字符)",
+          "sql/seed.sql(189字符)",
+          "docs/讲解材料.md(1400字符)",
+          "env-check.md(326字符)",
+          "README.md(1798字符)",
+          "MANIFEST.md(730字符)"
         ]
       },
       {
@@ -728,11 +745,11 @@
       },
       {
         "path": "README.md",
-        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
       },
       {
         "path": "tests/invariants.ts",
@@ -744,7 +761,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "b6fbf973e3926654b123d48368a03b44d6755dfe5f4d640f346a416f57fa1810"
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
       },
       {
         "path": "src/types.ts",
@@ -752,7 +769,7 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T04:05:23.406Z"
+    "createdAt": "2026-11-10T04:34:21.682Z"
   },
   {
     "checkId": "CHK-F07-01",
@@ -764,10 +781,10 @@
         "criterion": "文件映射含 frontend/** 与 backend/**",
         "anchor": "parser",
         "expected": "至少各有一个前端与后端交付物，且包含讲解材料",
-        "actual": "前端文件=5, 后端文件=5, 讲解材料=true",
+        "actual": "前端文件=5, 后端文件=6, 讲解材料=true",
         "verdict": "PASS",
         "evidence": [
-          "交付物路径: docs/技术文档.md | frontend/package.json | frontend/index.html | frontend/src/main.tsx | frontend/src/api.ts | frontend/src/LoginForm.tsx | backend/pom.xml | backend/src/main/java/Application.java | backend/src/main/java/controller/Controller.java | backend/src/main/java/service/Service.java | backend/src/main/java/mapper/Mapper.java | docs/讲解材料.md"
+          "交付物路径: docs/技术文档.md | frontend/package.json | frontend/index.html | frontend/src/main.tsx | frontend/src/api.ts | frontend/src/LoginForm.tsx | backend/pom.xml | backend/src/main/java/Application.java | backend/src/main/java/controller/Controller.java | backend/src/main/java/service/Service.java | backend/src/main/java/mapper/Mapper.java | backend/src/main/java/auth/AuthService.java | sql/schema.sql | sql/seed.sql | docs/讲解材料.md | env-check.md | README.md | MANIFEST.md"
         ]
       },
       {
@@ -775,7 +792,7 @@
         "criterion": "每个类 / public 方法 / 核心条件分支含中文注释块且含「做什么」「为什么」",
         "anchor": "invariant",
         "expected": "每个源码文件中两个关键词的出现次数均 >= 结构标记数",
-        "actual": "源码文件=7, 不达标项=无",
+        "actual": "源码文件=8, 不达标项=无",
         "verdict": "PASS",
         "evidence": [
           "frontend/src/main.tsx: 结构标记=1",
@@ -784,7 +801,8 @@
           "backend/src/main/java/Application.java: 结构标记=3",
           "backend/src/main/java/controller/Controller.java: 结构标记=3",
           "backend/src/main/java/service/Service.java: 结构标记=3",
-          "backend/src/main/java/mapper/Mapper.java: 结构标记=3"
+          "backend/src/main/java/mapper/Mapper.java: 结构标记=3",
+          "backend/src/main/java/auth/AuthService.java: 结构标记=3"
         ]
       },
       {
@@ -809,8 +827,8 @@
         "actual": "Java依赖=pom.xml, Python依赖=requirements.txt, java源码=true, py源码=true, 内容不同=true",
         "verdict": "PASS",
         "evidence": [
-          "Java 后端路径: backend/pom.xml, backend/src/main/java/Application.java, backend/src/main/java/controller/Controller.java, backend/src/main/java/service/Service.java, backend/src/main/java/mapper/Mapper.java",
-          "Python 后端路径: backend/requirements.txt, backend/app/main.py, backend/app/routers/Routers.py, backend/app/services/Services.py, backend/app/repositories/Repositories.py"
+          "Java 后端路径: backend/pom.xml, backend/src/main/java/Application.java, backend/src/main/java/controller/Controller.java, backend/src/main/java/service/Service.java, backend/src/main/java/mapper/Mapper.java, backend/src/main/java/auth/AuthService.java",
+          "Python 后端路径: backend/requirements.txt, backend/app/main.py, backend/app/routers/Routers.py, backend/app/services/Services.py, backend/app/repositories/Repositories.py, backend/app/auth/AuthService.py"
         ]
       },
       {
@@ -830,11 +848,11 @@
         "criterion": "静态断言 scripts/check.mjs 未调用任何编译 / 运行 / 安装命令",
         "anchor": "invariant",
         "expected": "判据入口不加载子进程模块、不出现命令执行调用（明确不编译、不执行生成产物）",
-        "actual": "可执行代码禁用词元命中=无, 模块白名单通过=true",
+        "actual": "子进程/执行调用命中=无, require 调用=false, 模块白名单通过=true",
         "verdict": "PASS",
         "evidence": [
-          "判据入口导入模块: node:fs, node:crypto, node:path, node:url, typescript",
-          "扫描字符数=10474"
+          "判据入口导入模块: node:fs, node:crypto, node:path, node:url, typescript, jszip",
+          "扫描字符数=103444"
         ]
       },
       {
@@ -866,11 +884,11 @@
       },
       {
         "path": "README.md",
-        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "fd3251754c486e99d0c134c115fccb396abbb4b2db03ffc27572d0cd8ea1c467"
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
       },
       {
         "path": "tests/invariants.ts",
@@ -882,7 +900,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "77823f3cf8cbe29e496c12d7cb1c2c45bfb1cacbe9ecb3328dc942f27053f085"
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
       },
       {
         "path": "src/types.ts",
@@ -890,7 +908,7 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T04:12:35.533Z"
+    "createdAt": "2026-11-10T04:34:22.858Z"
   },
   {
     "checkId": "CHK-F08-01",
@@ -1030,11 +1048,11 @@
       },
       {
         "path": "README.md",
-        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "fd3251754c486e99d0c134c115fccb396abbb4b2db03ffc27572d0cd8ea1c467"
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
       },
       {
         "path": "tests/invariants.ts",
@@ -1046,7 +1064,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "e1b95e63086a56e991ca0603dad4c35698ffffe4de549b8e8ffccfffd09c3664"
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
       },
       {
         "path": "src/types.ts",
@@ -1054,7 +1072,7 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T04:18:44.485Z"
+    "createdAt": "2026-11-10T04:34:24.036Z"
   },
   {
     "checkId": "CHK-F09-01",
@@ -1147,11 +1165,11 @@
       },
       {
         "path": "README.md",
-        "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
       },
       {
         "path": "checks/runs.json",
-        "sha256": "33e2ff855c5ffd362775957670353a2fb8bd5de6fce2d36b3676961e06a9873f"
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
       },
       {
         "path": "tests/invariants.ts",
@@ -1163,7 +1181,7 @@
       },
       {
         "path": "scripts/check.mjs",
-        "sha256": "8f3a217d1a4632831cb9a17a87512d67ef0da82a35eb9c153f89047f000eae3f"
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
       },
       {
         "path": "src/types.ts",
@@ -1171,6 +1189,125 @@
       }
     ],
     "verdict": "PASS",
-    "createdAt": "2026-11-10T04:23:54.995Z"
+    "createdAt": "2026-11-10T04:34:25.221Z"
+  },
+  {
+    "checkId": "CHK-F10-01",
+    "feature": "F10",
+    "stack": "common",
+    "items": [
+      {
+        "id": "F10-01",
+        "criterion": "JSZip 解包后文件树与 generate() 一致、条目集合 == MANIFEST、每条目非空、无路径穿越",
+        "anchor": "parser",
+        "expected": "压缩包条目集合 = 文件树 = 清单声明集合；内容非空；路径均安全",
+        "actual": "ZIP条目=18, 文件树=18, 清单=18, 非空=true, 路径安全=true",
+        "verdict": "PASS",
+        "evidence": [
+          "前五个条目: MANIFEST.md | README.md | backend/pom.xml | backend/src/main/java/Application.java | backend/src/main/java/auth/AuthService.java"
+        ]
+      },
+      {
+        "id": "F10-02",
+        "criterion": "npm test 全绿 + npm run build + npm run lint 退出码 0",
+        "anchor": "parser",
+        "expected": "工程侧机器证据：成功戳、dist 哈希一致、九个前序功能点全 PASS、测试文件齐备",
+        "actual": "全部条件成立",
+        "verdict": "PASS",
+        "evidence": [
+          "锁文件 v3=true, 已安装快照=true",
+          "build/lint 成功戳与 dist 内容哈希一致=true",
+          "前序功能点回归记录全 PASS: F01,F02,F03,F04,F05,F06,F07,F08,F09 => true",
+          "本点测试文件齐备且无跳过标记: true"
+        ]
+      },
+      {
+        "id": "F10-03",
+        "criterion": "本系统 README 每条命令 ∈ scripts ∪ {npm ci}，声明 Node 版本 == engines.node",
+        "anchor": "parser",
+        "expected": "命令白名单无违规；README 精确包含 engines.node 值并如实注明未在 20 LTS 实跑",
+        "actual": "命令数=11, 违规=无, engines.node=>=20, 声明一致=true, 如实注明=true, 无 npm install=true",
+        "verdict": "PASS",
+        "evidence": [
+          "允许脚本集合=dev,build,test,lint,check,ci",
+          "命令清单=npm ci | npm ci | npm run dev | npm run build | npm run test | npm run lint | npm run check -- F01 | npm ci | npm ci | npm run build | npm run check -- F01"
+        ]
+      },
+      {
+        "id": "F10-04",
+        "criterion": "端到端 {title} → 生成 → 快照 → ZIP 全链路无异常且无人工把关步骤",
+        "anchor": "parser",
+        "expected": "纯函数调用链全部成功；main / ui 源码禁用词计数为 0",
+        "actual": "链路 ZIP 条目=18/18, 禁用词命中=0, 快照可重建=true",
+        "verdict": "PASS",
+        "evidence": [
+          "链路: normalize → recommendFeatures → generate → buildSnapshot → restore → buildZipBuffer → JSZip.loadAsync"
+        ]
+      },
+      {
+        "id": "F10-05",
+        "criterion": "全部 10 份 AcceptanceRecord 齐备且均为 PASS",
+        "anchor": "invariant",
+        "expected": "九个前序记录全 PASS + 十个功能点判据位齐备 + 本次 F10 判据全 PASS（收口 R-09 复核十份）",
+        "actual": "前序记录=9 全PASS=true, 功能点判据位=10/10",
+        "verdict": "PASS",
+        "evidence": [
+          "前序编号=F01,F02,F03,F04,F05,F06,F07,F08,F09"
+        ]
+      },
+      {
+        "id": "F10-06",
+        "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+        "anchor": "parser",
+        "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+        "actual": "全部条件成立",
+        "verdict": "PASS",
+        "evidence": [
+          "锁文件 v3=true, 已安装快照=true",
+          "build/lint 成功戳与 dist 内容哈希一致=true",
+          "前序功能点回归记录全 PASS: F01,F02,F03,F04,F05,F06,F07,F08,F09 => true",
+          "本点测试文件齐备且无跳过标记: true"
+        ]
+      }
+    ],
+    "declaredChecks": 6,
+    "evaluatedChecks": 6,
+    "unknownCount": 0,
+    "evidence": [
+      {
+        "path": "package.json",
+        "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+      },
+      {
+        "path": "README.md",
+        "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
+      },
+      {
+        "path": "checks/runs.json",
+        "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
+      },
+      {
+        "path": "tests/invariants.ts",
+        "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
+      },
+      {
+        "path": "tests/F10.test.ts",
+        "sha256": "e87551be3d1476e578b239715889e27920f4b460b6be351e4d186af4e43f3a29"
+      },
+      {
+        "path": "scripts/check.mjs",
+        "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
+      },
+      {
+        "path": "src/types.ts",
+        "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+      }
+    ],
+    "verdict": "PASS",
+    "createdAt": "2026-11-10T04:34:26.408Z"
   }
 ]

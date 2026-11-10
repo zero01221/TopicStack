@@ -8,10 +8,10 @@
       "criterion": "同一输入连续两次 generate() 输出全等（确定性）",
       "anchor": "invariant",
       "expected": "两次生成的文件树深比较完全相等，且纯文本哈希相等",
-      "actual": "深比较相等=true, 哈希相等=true, 文件数=1",
+      "actual": "深比较相等=true, 哈希相等=true, 文件数=18",
       "verdict": "PASS",
       "evidence": [
-        "哈希=fnv1a-8fc224fb"
+        "哈希=fnv1a-ec1e3499"
       ]
     },
     {
@@ -42,10 +42,27 @@
       "criterion": "输出中不含占位符残留",
       "anchor": "invariant",
       "expected": "全部交付物内容均不含占位符起始符",
-      "actual": "残留文件=无, 交付物数=1",
+      "actual": "残留文件=无, 交付物数=18",
       "verdict": "PASS",
       "evidence": [
-        "docs/技术文档.md(1123字符)"
+        "docs/技术文档.md(1123字符)",
+        "frontend/package.json(142字符)",
+        "frontend/index.html(229字符)",
+        "frontend/src/main.tsx(444字符)",
+        "frontend/src/api.ts(482字符)",
+        "frontend/src/LoginForm.tsx(677字符)",
+        "backend/pom.xml(515字符)",
+        "backend/src/main/java/Application.java(516字符)",
+        "backend/src/main/java/controller/Controller.java(526字符)",
+        "backend/src/main/java/service/Service.java(511字符)",
+        "backend/src/main/java/mapper/Mapper.java(506字符)",
+        "backend/src/main/java/auth/AuthService.java(559字符)",
+        "sql/schema.sql(459字符)",
+        "sql/seed.sql(189字符)",
+        "docs/讲解材料.md(1400字符)",
+        "env-check.md(326字符)",
+        "README.md(1798字符)",
+        "MANIFEST.md(730字符)"
       ]
     },
     {
@@ -88,11 +105,11 @@
     },
     {
       "path": "README.md",
-      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+      "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
     },
     {
       "path": "checks/runs.json",
-      "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+      "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
     },
     {
       "path": "tests/invariants.ts",
@@ -104,7 +121,7 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "b6fbf973e3926654b123d48368a03b44d6755dfe5f4d640f346a416f57fa1810"
+      "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
     },
     {
       "path": "src/types.ts",
@@ -112,5 +129,5 @@
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T04:05:23.406Z"
+  "createdAt": "2026-11-10T04:34:21.682Z"
 }

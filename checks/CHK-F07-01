@@ -8,10 +8,10 @@
       "criterion": "文件映射含 frontend/** 与 backend/**",
       "anchor": "parser",
       "expected": "至少各有一个前端与后端交付物，且包含讲解材料",
-      "actual": "前端文件=5, 后端文件=5, 讲解材料=true",
+      "actual": "前端文件=5, 后端文件=6, 讲解材料=true",
       "verdict": "PASS",
       "evidence": [
-        "交付物路径: docs/技术文档.md | frontend/package.json | frontend/index.html | frontend/src/main.tsx | frontend/src/api.ts | frontend/src/LoginForm.tsx | backend/pom.xml | backend/src/main/java/Application.java | backend/src/main/java/controller/Controller.java | backend/src/main/java/service/Service.java | backend/src/main/java/mapper/Mapper.java | docs/讲解材料.md"
+        "交付物路径: docs/技术文档.md | frontend/package.json | frontend/index.html | frontend/src/main.tsx | frontend/src/api.ts | frontend/src/LoginForm.tsx | backend/pom.xml | backend/src/main/java/Application.java | backend/src/main/java/controller/Controller.java | backend/src/main/java/service/Service.java | backend/src/main/java/mapper/Mapper.java | backend/src/main/java/auth/AuthService.java | sql/schema.sql | sql/seed.sql | docs/讲解材料.md | env-check.md | README.md | MANIFEST.md"
       ]
     },
     {
@@ -19,7 +19,7 @@
       "criterion": "每个类 / public 方法 / 核心条件分支含中文注释块且含「做什么」「为什么」",
       "anchor": "invariant",
       "expected": "每个源码文件中两个关键词的出现次数均 >= 结构标记数",
-      "actual": "源码文件=7, 不达标项=无",
+      "actual": "源码文件=8, 不达标项=无",
       "verdict": "PASS",
       "evidence": [
         "frontend/src/main.tsx: 结构标记=1",
@@ -28,7 +28,8 @@
         "backend/src/main/java/Application.java: 结构标记=3",
         "backend/src/main/java/controller/Controller.java: 结构标记=3",
         "backend/src/main/java/service/Service.java: 结构标记=3",
-        "backend/src/main/java/mapper/Mapper.java: 结构标记=3"
+        "backend/src/main/java/mapper/Mapper.java: 结构标记=3",
+        "backend/src/main/java/auth/AuthService.java: 结构标记=3"
       ]
     },
     {
@@ -53,8 +54,8 @@
       "actual": "Java依赖=pom.xml, Python依赖=requirements.txt, java源码=true, py源码=true, 内容不同=true",
       "verdict": "PASS",
       "evidence": [
-        "Java 后端路径: backend/pom.xml, backend/src/main/java/Application.java, backend/src/main/java/controller/Controller.java, backend/src/main/java/service/Service.java, backend/src/main/java/mapper/Mapper.java",
-        "Python 后端路径: backend/requirements.txt, backend/app/main.py, backend/app/routers/Routers.py, backend/app/services/Services.py, backend/app/repositories/Repositories.py"
+        "Java 后端路径: backend/pom.xml, backend/src/main/java/Application.java, backend/src/main/java/controller/Controller.java, backend/src/main/java/service/Service.java, backend/src/main/java/mapper/Mapper.java, backend/src/main/java/auth/AuthService.java",
+        "Python 后端路径: backend/requirements.txt, backend/app/main.py, backend/app/routers/Routers.py, backend/app/services/Services.py, backend/app/repositories/Repositories.py, backend/app/auth/AuthService.py"
       ]
     },
     {
@@ -74,11 +75,11 @@
       "criterion": "静态断言 scripts/check.mjs 未调用任何编译 / 运行 / 安装命令",
       "anchor": "invariant",
       "expected": "判据入口不加载子进程模块、不出现命令执行调用（明确不编译、不执行生成产物）",
-      "actual": "可执行代码禁用词元命中=无, 模块白名单通过=true",
+      "actual": "子进程/执行调用命中=无, require 调用=false, 模块白名单通过=true",
       "verdict": "PASS",
       "evidence": [
-        "判据入口导入模块: node:fs, node:crypto, node:path, node:url, typescript",
-        "扫描字符数=10474"
+        "判据入口导入模块: node:fs, node:crypto, node:path, node:url, typescript, jszip",
+        "扫描字符数=103444"
       ]
     },
     {
@@ -110,11 +111,11 @@
     },
     {
       "path": "README.md",
-      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+      "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
     },
     {
       "path": "checks/runs.json",
-      "sha256": "fd3251754c486e99d0c134c115fccb396abbb4b2db03ffc27572d0cd8ea1c467"
+      "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
     },
     {
       "path": "tests/invariants.ts",
@@ -126,7 +127,7 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "77823f3cf8cbe29e496c12d7cb1c2c45bfb1cacbe9ecb3328dc942f27053f085"
+      "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
     },
     {
       "path": "src/types.ts",
@@ -134,5 +135,5 @@
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T04:12:35.533Z"
+  "createdAt": "2026-11-10T04:34:22.858Z"
 }

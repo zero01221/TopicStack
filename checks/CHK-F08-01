@@ -136,11 +136,11 @@
     },
     {
       "path": "README.md",
-      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+      "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
     },
     {
       "path": "checks/runs.json",
-      "sha256": "fd3251754c486e99d0c134c115fccb396abbb4b2db03ffc27572d0cd8ea1c467"
+      "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
     },
     {
       "path": "tests/invariants.ts",
@@ -152,7 +152,7 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "e1b95e63086a56e991ca0603dad4c35698ffffe4de549b8e8ffccfffd09c3664"
+      "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
     },
     {
       "path": "src/types.ts",
@@ -160,5 +160,5 @@
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T04:18:44.485Z"
+  "createdAt": "2026-11-10T04:34:24.036Z"
 }

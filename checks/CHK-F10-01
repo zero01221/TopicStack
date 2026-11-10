@@ -1,0 +1,119 @@
+{
+  "checkId": "CHK-F10-01",
+  "feature": "F10",
+  "stack": "common",
+  "items": [
+    {
+      "id": "F10-01",
+      "criterion": "JSZip 解包后文件树与 generate() 一致、条目集合 == MANIFEST、每条目非空、无路径穿越",
+      "anchor": "parser",
+      "expected": "压缩包条目集合 = 文件树 = 清单声明集合；内容非空；路径均安全",
+      "actual": "ZIP条目=18, 文件树=18, 清单=18, 非空=true, 路径安全=true",
+      "verdict": "PASS",
+      "evidence": [
+        "前五个条目: MANIFEST.md | README.md | backend/pom.xml | backend/src/main/java/Application.java | backend/src/main/java/auth/AuthService.java"
+      ]
+    },
+    {
+      "id": "F10-02",
+      "criterion": "npm test 全绿 + npm run build + npm run lint 退出码 0",
+      "anchor": "parser",
+      "expected": "工程侧机器证据：成功戳、dist 哈希一致、九个前序功能点全 PASS、测试文件齐备",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "锁文件 v3=true, 已安装快照=true",
+        "build/lint 成功戳与 dist 内容哈希一致=true",
+        "前序功能点回归记录全 PASS: F01,F02,F03,F04,F05,F06,F07,F08,F09 => true",
+        "本点测试文件齐备且无跳过标记: true"
+      ]
+    },
+    {
+      "id": "F10-03",
+      "criterion": "本系统 README 每条命令 ∈ scripts ∪ {npm ci}，声明 Node 版本 == engines.node",
+      "anchor": "parser",
+      "expected": "命令白名单无违规；README 精确包含 engines.node 值并如实注明未在 20 LTS 实跑",
+      "actual": "命令数=11, 违规=无, engines.node=>=20, 声明一致=true, 如实注明=true, 无 npm install=true",
+      "verdict": "PASS",
+      "evidence": [
+        "允许脚本集合=dev,build,test,lint,check,ci",
+        "命令清单=npm ci | npm ci | npm run dev | npm run build | npm run test | npm run lint | npm run check -- F01 | npm ci | npm ci | npm run build | npm run check -- F01"
+      ]
+    },
+    {
+      "id": "F10-04",
+      "criterion": "端到端 {title} → 生成 → 快照 → ZIP 全链路无异常且无人工把关步骤",
+      "anchor": "parser",
+      "expected": "纯函数调用链全部成功；main / ui 源码禁用词计数为 0",
+      "actual": "链路 ZIP 条目=18/18, 禁用词命中=0, 快照可重建=true",
+      "verdict": "PASS",
+      "evidence": [
+        "链路: normalize → recommendFeatures → generate → buildSnapshot → restore → buildZipBuffer → JSZip.loadAsync"
+      ]
+    },
+    {
+      "id": "F10-05",
+      "criterion": "全部 10 份 AcceptanceRecord 齐备且均为 PASS",
+      "anchor": "invariant",
+      "expected": "九个前序记录全 PASS + 十个功能点判据位齐备 + 本次 F10 判据全 PASS（收口 R-09 复核十份）",
+      "actual": "前序记录=9 全PASS=true, 功能点判据位=10/10",
+      "verdict": "PASS",
+      "evidence": [
+        "前序编号=F01,F02,F03,F04,F05,F06,F07,F08,F09"
+      ]
+    },
+    {
+      "id": "F10-06",
+      "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+      "anchor": "parser",
+      "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "锁文件 v3=true, 已安装快照=true",
+        "build/lint 成功戳与 dist 内容哈希一致=true",
+        "前序功能点回归记录全 PASS: F01,F02,F03,F04,F05,F06,F07,F08,F09 => true",
+        "本点测试文件齐备且无跳过标记: true"
+      ]
+    }
+  ],
+  "declaredChecks": 6,
+  "evaluatedChecks": 6,
+  "unknownCount": 0,
+  "evidence": [
+    {
+      "path": "package.json",
+      "sha256": "37a591c290c5ae8155e652c8410b997f4dcb431f869a6ef473220d788976e73d"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
+    },
+    {
+      "path": "checks/runs.json",
+      "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
+    },
+    {
+      "path": "tests/invariants.ts",
+      "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
+    },
+    {
+      "path": "tests/F10.test.ts",
+      "sha256": "e87551be3d1476e578b239715889e27920f4b460b6be351e4d186af4e43f3a29"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
+    },
+    {
+      "path": "src/types.ts",
+      "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+    }
+  ],
+  "verdict": "PASS",
+  "createdAt": "2026-11-10T04:34:26.408Z"
+}

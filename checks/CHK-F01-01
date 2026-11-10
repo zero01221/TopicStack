@@ -30,7 +30,7 @@
       "evidence": [
         "dist/index.html 存在: true",
         "根容器 id=\"root\": true",
-        "构建后 JS 资源: /assets/index-_oScPB29.js",
+        "构建后 JS 资源: /assets/index-xTpCznZE.js",
         "资源文件实际存在: true"
       ]
     },
@@ -50,11 +50,11 @@
       "id": "F01-04",
       "criterion": "README 每条命令 ∈ scripts ∪ {npm ci, npm install}",
       "anchor": "parser",
-      "expected": "全部 13 条命令可解析且脚本名 ∈ dev,build,test,lint,check,ci,install；含 npm ci 与 npm run dev",
-      "actual": "命令数=13, 违规=0, 含 ci/dev=YES",
+      "expected": "全部 11 条命令可解析且脚本名 ∈ dev,build,test,lint,check,ci,install；含 npm ci 与 npm run dev",
+      "actual": "命令数=11, 违规=0, 含 ci/dev=YES",
       "verdict": "PASS",
       "evidence": [
-        "README 命令清单: npm ci | npm ci | npm run dev | npm install | npm run build | npm run test | npm run lint | npm run check -- F01 | npm ci | npm install | npm ci | npm run build | npm run check -- F01",
+        "README 命令清单: npm ci | npm ci | npm run dev | npm run build | npm run test | npm run lint | npm run check -- F01 | npm ci | npm ci | npm run build | npm run check -- F01",
         "允许脚本集合: dev, build, test, lint, check, ci, install",
         "违规命令数: 0"
       ]
@@ -80,7 +80,7 @@
       "actual": "期望值外置、无外部加载、字面常量与助手齐备",
       "verdict": "PASS",
       "evidence": [
-        "静态扫描目标: tests/invariants.ts (5044 字符)",
+        "静态扫描目标: tests/invariants.ts (6256 字符)",
         "禁止引用命中: 无",
         "外部模块加载: false",
         "字面常量数组存在: true",
@@ -102,19 +102,19 @@
     },
     {
       "path": "README.md",
-      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+      "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
     },
     {
       "path": "dist/index.html",
-      "sha256": "05c6fb4b046380b5733cae69373526255c37c2985420a42c74ec56d4c74e0197"
+      "sha256": "3fe7e6c61aeb1d0cb6291b5caae4d23cfa6d9428b1bd3a2ba97198c4571616c7"
     },
     {
       "path": "checks/runs.json",
-      "sha256": "6b10f0153dbbf4c6986fca9a8757911279a87214367302ed275390d73138aa87"
+      "sha256": "9e57d95941a5aafe2c5ad7db4ab213f1583ecaeeec8959a039f264cd133fdb00"
     },
     {
       "path": "tests/invariants.ts",
-      "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+      "sha256": "6eaa450ef0e349e32b385a9cef451aeab83b1f5350b96f0f58b48f2138ec3c42"
     },
     {
       "path": "tests/F01.test.ts",
@@ -122,9 +122,9 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "1f9c6cc685fd7d6530a4bb03005cc8a92fdadb6d6dadce00978ff3a1f23de5b8"
+      "sha256": "c4d3e7129e045c9aba9b8034f5c3113807d41b649a3fb439dcd54bc8bddf07db"
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T03:50:55.679Z"
+  "createdAt": "2026-11-10T04:34:15.816Z"
 }

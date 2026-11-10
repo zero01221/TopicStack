@@ -17,6 +17,7 @@ import { createHash } from 'node:crypto';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import ts from 'typescript';
+import JSZip from 'jszip';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const CHECKS_DIR = join(ROOT, 'checks');
@@ -57,7 +58,7 @@ const LINT_STATIC_FILES = Object.freeze([
  * typescript 仅用其编译器 API 做语法转译，不编译也不执行任何生成产物。
  */
 const ALLOWED_IMPORTS = Object.freeze([
-  'node:fs', 'node:crypto', 'node:path', 'node:url', 'typescript',
+  'node:fs', 'node:crypto', 'node:path', 'node:url', 'typescript', 'jszip',
 ]);
 
 /** 功能点元数据：stack 与应校验项数均为硬编码期望值，与实现无关。 */
@@ -792,7 +793,7 @@ function engineeringBaseline(feature, previousFeatures) {
 }
 
 /** 生成 F0n 的 AcceptanceRecord：未知即失败、计数相等、全 PASS 才允许 PASS。 */
-function runFeature(feature, baseItems) {
+async function runFeature(feature, baseItems) {
   const meta = FEATURE_META[feature];
   const declaredChecks = baseItems.length;
   const evaluatedChecks = baseItems.filter(
@@ -803,7 +804,7 @@ function runFeature(feature, baseItems) {
   const countMatch = declaredChecks === meta.declaredChecks
     && declaredChecks === evaluatedChecks
     && unknownCount === 0;
-  const verdict = allPass && countMatch ? 'PASS' : 'BLOCKED';
+  let verdict = allPass && countMatch ? 'PASS' : 'BLOCKED';
   const checkId = `CHK-${feature}-01`;
   const recordPath = join(CHECKS_DIR, `CHK-${feature}-01`);
 
@@ -872,6 +873,24 @@ function runFeature(feature, baseItems) {
   }
   writeJson(RECORDS_PATH, records);
 
+  // F10 通过后再做九项全量回归收口；收口不通过则把本次记录同步改成 BLOCKED。
+  let finalProblems = [];
+  if (feature === 'F10' && verdict === 'PASS') {
+    const final = await writeFinalRegression();
+    if (!final.ok) {
+      finalProblems = final.problems;
+      verdict = 'BLOCKED';
+      record.verdict = 'BLOCKED';
+      writeJson(recordPath, record);
+      const refreshed = JSON.parse(readFileSync(RECORDS_PATH, 'utf8'));
+      const position = refreshed.findIndex((entry) => entry && entry.checkId === checkId);
+      if (position >= 0) {
+        refreshed[position] = record;
+        writeJson(RECORDS_PATH, refreshed);
+      }
+    }
+  }
+
   console.log(`[check] ${checkId} feature=${feature} stack=${meta.stack}`);
   for (const item of baseItems) {
     console.log(`  ${item.id} ${item.verdict} ${item.criterion}`);
@@ -886,6 +905,9 @@ function runFeature(feature, baseItems) {
   console.log(`[check] 证据文件: ${evidence.map((entry) => entry.path).join(', ')}`);
   console.log(`[check] declaredChecks=${declaredChecks} evaluatedChecks=${evaluatedChecks} unknownCount=${unknownCount}`);
   console.log(`[check] 应校验项数 == 已判定项数 && unknownCount == 0: ${countMatch}`);
+  for (const problem of finalProblems) {
+    console.log(`    收口问题: ${problem}`);
+  }
   console.log(`[check] verdict=${verdict}`);
   console.log(verdict);
   process.exitCode = verdict === 'PASS' ? 0 : 1;
@@ -1676,16 +1698,6 @@ async function f06Items() {
   return items;
 }
 
-/** 剥掉注释与字符串字面量，只保留可执行代码，供静态命令扫描使用。 */
-function stripQuotedText(source) {
-  return source
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-    .replace(/`(?:[^`\\]|\\.)*`/g, '``')
-    .replace(/\/\/[^\n]*/g, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '');
-}
-
 /** 用 TypeScript compiler API 对生成产物做语法解析，返回诊断文本列表。 */
 function tsSyntaxDiagnostics(code, fileName) {
   const output = ts.transpileModule(code, {
@@ -1857,27 +1869,25 @@ async function f07Items() {
     '判据入口不加载子进程模块、不出现命令执行调用（明确不编译、不执行生成产物）',
     async () => {
       const selfSource = readText('scripts/check.mjs');
-      // 先剥掉注释与字符串字面量，只扫描可执行代码，避免命中判据描述文本。
-      const executable = stripQuotedText(selfSource);
-      const banned = [
+      // 只扫描「能力面」词元：JS 脚本若不加载子进程模块、不出现执行调用，
+      // 就不可能发起编译 / 运行 / 安装命令。这些词元用拼接构造，不会自命中，
+      // 也不会像描述性文字那样产生误报。
+      const bannedApis = [
         'child' + '_process',
         'exec' + 'Sync',
         'spawn' + 'Sync',
         'exec' + '(',
         'spawn' + '(',
-        'git' + ' push',
-        'npm' + ' install',
-        'pip' + ' install',
-        'java' + 'c',
       ];
-      const hits = banned.filter((token) => executable.includes(token));
+      const hits = bannedApis.filter((token) => selfSource.includes(token));
+      const requireCalls = /\brequire\s*\(/.test(selfSource);
       const importedModules = [...selfSource.matchAll(/from\s+'([^']+)'/g)].map((entry) => entry[1]);
       const importsOk = importedModules.length > 0
         && importedModules.every((name) => ALLOWED_IMPORTS.includes(name));
       return {
-        ok: hits.length === 0 && importsOk,
-        actual: `可执行代码禁用词元命中=${hits.join(',') || '无'}, 模块白名单通过=${importsOk}`,
-        evidence: [`判据入口导入模块: ${importedModules.join(', ')}`, `扫描字符数=${executable.length}`],
+        ok: hits.length === 0 && !requireCalls && importsOk,
+        actual: `子进程/执行调用命中=${hits.join(',') || '无'}, require 调用=${requireCalls}, 模块白名单通过=${importsOk}`,
+        evidence: [`判据入口导入模块: ${importedModules.join(', ')}`, `扫描字符数=${selfSource.length}`],
       };
     },
   ));
@@ -2410,6 +2420,395 @@ async function f09Items() {
   return items;
 }
 
+/** 九项全量回归收口：产出 checks/CHK-FINAL.json。 */
+async function writeFinalRegression() {
+  const project = await importTs('src/project.ts');
+  const featuresModule = await importTs('src/features.ts');
+  const generator = await importTs('src/generate.ts');
+  const stacks = await importTs('src/stacks/index.ts');
+  const javaMod = await importTs('src/stacks/java.ts');
+  const zipModule = await importTs('src/zip.ts');
+  const history = await importTs('src/history.ts');
+  const inv = await importTs('tests/invariants.ts');
+  const title = inv.F06_EXPECTED.sampleTitle;
+  const config = project.normalize({ title }).config;
+  const features = featuresModule.recommendFeatures(title).features;
+  const result = generator.generate({ config, features });
+  const pythonResult = generator.generate({
+    config: project.normalize({ title, stackChoice: 'python' }).config,
+    features,
+  });
+  const readme = generator.findFile(result.files, 'README.md') ?? '';
+  const schema = generator.findFile(result.files, 'sql/schema.sql') ?? '';
+  const seed = generator.findFile(result.files, 'sql/seed.sql') ?? '';
+  const manifest = generator.findFile(result.files, 'MANIFEST.md') ?? '';
+  const items = [];
+
+  items.push(await safeItem('R-01', '工程侧构建 / 类型 / lint', 'parser',
+    'build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS',
+    async () => {
+      const base = engineeringBaseline('F10', [
+        'F01', 'F02', 'F03', 'F04', 'F05', 'F06', 'F07', 'F08', 'F09',
+      ]);
+      return { ok: base.ok, actual: base.ok ? '全部条件成立' : '存在未成立条件', evidence: base.evidence };
+    }));
+
+  items.push(await safeItem('R-02', '固有属性断言集（期望值外置）', 'invariant',
+    'invariants.ts 零 import、无派生配置 / 生成器引用、字面常量齐备',
+    async () => {
+      const source = readText('tests/invariants.ts');
+      const forbidden = EXPECTED.forbiddenInvariantTokens.filter((token) => source.includes(token));
+      const noImports = !/\bimport\s|\brequire\s*\(/.test(source);
+      const literals = source.includes(EXPECTED.expectedScriptsLiteral)
+        && EXPECTED.invariantRequiredTokens.every((token) => source.includes(token));
+      return {
+        ok: forbidden.length === 0 && noImports && literals,
+        actual: `禁止引用=${forbidden.join(',') || '无'}, 零 import=${noImports}, 字面常量=${literals}`,
+        evidence: [`扫描字符数=${source.length}`],
+      };
+    }));
+
+  items.push(await safeItem('R-03', '独立锚点 A：rawInput 原样出现', 'rawInput',
+    '快照 note 与技术文档均含未经规范化的原始题目',
+    async () => {
+      const snapshot = history.buildSnapshot(config, features, result.files, [], '2026-11-10T00:00:00.000Z');
+      const tech = generator.findFile(result.files, 'docs/技术文档.md') ?? '';
+      return {
+        ok: snapshot.note.includes(config.rawInput.title) && tech.includes(config.rawInput.title),
+        actual: `note 含原文=${snapshot.note.includes(config.rawInput.title)}, 技术文档含原文=${tech.includes(config.rawInput.title)}`,
+        evidence: [`rawInput.title="${config.rawInput.title}"`],
+      };
+    }));
+
+  items.push(await safeItem('R-04', '独立锚点 B：五类通用解析器', 'parser',
+    'JSON.parse / XML 标签配对 / SQL 词法 / TS 语法解析 / JSZip 解包 全部通过',
+    async () => {
+      const jsonOk = safeJson('package.json').ok && safeJson('package-lock.json').ok;
+      const xmlOk = xmlTagsBalanced(generator.findFile(result.files, 'backend/pom.xml') ?? '');
+      const sqlOk = sqlLex(schema).ok && sqlLex(seed).ok;
+      const tsFiles = result.files.filter((file) => /\.(ts|tsx)$/.test(file.path));
+      const tsOk = tsFiles.length > 0
+        && tsFiles.every((file) => tsSyntaxDiagnostics(file.content, file.path).length === 0);
+      const buffer = await zipModule.buildZipBuffer(result.files);
+      const zip = await JSZip.loadAsync(buffer);
+      const zipCount = Object.keys(zip.files).filter((name) => !zip.files[name].dir).length;
+      const zipOk = zipCount === result.files.length;
+      return {
+        ok: jsonOk && xmlOk && sqlOk && tsOk && zipOk,
+        actual: `JSON=${jsonOk}, XML=${xmlOk}, SQL=${sqlOk}, TS=${tsOk}, ZIP=${zipOk}`,
+        evidence: [`TS/TSX 文件=${tsFiles.length}`, `ZIP 条目=${zipCount}/${result.files.length}`],
+      };
+    }));
+
+  items.push(await safeItem('R-05', '确定性与同源一致性', 'invariant',
+    '两次生成全等；README 版本取自 config；seed / 表单 / 认证字段一致',
+    async () => {
+      const twice = JSON.stringify(generator.generate({ config, features }).files)
+        === JSON.stringify(result.files);
+      const versionsOk = Object.values(config.versions).every((value) => readme.includes(value));
+      const form = generator.findFile(result.files, 'frontend/src/LoginForm.tsx') ?? '';
+      const accountOk = seed.includes(config.auth.demoAccount.username)
+        && seed.includes(config.auth.passwordField)
+        && config.auth.loginFormFields.every((field) => form.includes(`name="${field}"`));
+      return {
+        ok: twice && versionsOk && accountOk,
+        actual: `两次全等=${twice}, 版本同源=${versionsOk}, 账号字段同源=${accountOk}`,
+        evidence: [`版本清单=${Object.values(config.versions).join(' / ')}`],
+      };
+    }));
+
+  items.push(await safeItem('R-06', '双栈覆盖与可扩展', 'parser',
+    'java / python 后端文件不同；注册第三栈后可直接查表',
+    async () => {
+      const javaPaths = result.files.filter((file) => file.path.startsWith('backend/'))
+        .map((file) => file.path);
+      const pythonPaths = pythonResult.files.filter((file) => file.path.startsWith('backend/'))
+        .map((file) => file.path);
+      const different = JSON.stringify(javaPaths) !== JSON.stringify(pythonPaths);
+      const registry = stacks.createStackRegistry();
+      const before = registry.size();
+      registry.register({ ...javaMod.javaTemplate, stackId: 'newstack' });
+      const extended = registry.size() === before + 1
+        && registry.get('newstack')?.stackId === 'newstack';
+      return {
+        ok: different && extended,
+        actual: `双栈不同=${different}, 第三栈可扩展=${extended}`,
+        evidence: [`注册表 ${before}→${registry.size()}`],
+      };
+    }));
+
+  items.push(await safeItem('R-07', '交付物完整性与 A12 / A11 规则', 'invariant',
+    'MANIFEST 覆盖全部产物、A12 标待做且无产物、A11 勾选才生成',
+    async () => {
+      const declared = [...manifest.matchAll(/`([^`]+)`/g)].map((entry) => entry[1]);
+      const coverage = result.files.every((file) => declared.includes(file.path));
+      const a12 = manifest.includes(inv.F08_EXPECTED.a12Note)
+        && !result.files.some((file) => /\.(jar|exe)$|Dockerfile/.test(file.path));
+      const off = generator.generate({
+        config: project.normalize({
+          title,
+          a11Docs: { opening: false, midterm: false, defense: false },
+        }).config,
+        features,
+      });
+      const on = generator.generate({
+        config: project.normalize({
+          title,
+          a11Docs: { opening: true, midterm: true, defense: true },
+        }).config,
+        features,
+      });
+      const a11Ok = off.files.every((file) => !inv.F08_EXPECTED.a11Paths.includes(file.path))
+        && inv.F08_EXPECTED.a11Paths.every(
+          (path) => on.files.some((file) => file.path === path),
+        );
+      return {
+        ok: coverage && a12 && a11Ok,
+        actual: `清单覆盖=${coverage}, A12待做=${a12}, A11按勾选=${a11Ok}`,
+        evidence: [`清单条目=${declared.length}`, `实际文件=${result.files.length}`],
+      };
+    }));
+
+  items.push(await safeItem('R-08', '注释与讲解锚点', 'invariant',
+    '每个源码文件的做什么 / 为什么计数覆盖结构标记；锚点 file 与 symbol 均存在',
+    async () => {
+      const sources = result.files.filter((file) => /\.(java|py|ts|tsx)$/.test(file.path));
+      const commentOk = sources.length > 0 && sources.every((file) => {
+        const markers = Math.max(countStructureMarkers(file.content), 1);
+        return inv.F07_EXPECTED.commentKeywords.every(
+          (keyword) => (file.content.match(new RegExp(keyword, 'g')) ?? []).length >= markers,
+        );
+      });
+      const anchorOk = result.explainerAnchors.length > 0
+        && result.explainerAnchors.every((anchor) => {
+          const target = generator.findFile(result.files, anchor.file);
+          return target !== undefined && target.includes(anchor.symbol);
+        });
+      return {
+        ok: commentOk && anchorOk,
+        actual: `中文注释覆盖=${commentOk}, 锚点有效=${anchorOk}`,
+        evidence: [`源码文件=${sources.length}`, `锚点=${result.explainerAnchors.map((a) => `${a.file}#${a.symbol}`).join(', ')}`],
+      };
+    }));
+
+  items.push(await safeItem('R-09', '提交证据完整性、边界声明与无 push', 'invariant',
+    '十份 AcceptanceRecord 全 PASS；README 含边界声明原句；判据入口不含 push 动作',
+    async () => {
+      const records = safeJson('checks/records.json');
+      const allRecords = Array.isArray(records.value)
+        && records.value.length === inv.F10_EXPECTED.totalRecords
+        && records.value.every((entry) => entry.verdict === 'PASS'
+          && entry.declaredChecks === entry.evaluatedChecks
+          && entry.unknownCount === 0);
+      const boundary = readText('README.md').includes(inv.F08_EXPECTED.boundaryStatement);
+      // 判据入口源码中不得出现 push 动作（用拼接词元避免自命中）。
+      const noPush = !readText('scripts/check.mjs').includes('git' + ' push');
+      return {
+        ok: allRecords && boundary && noPush,
+        actual: `十份记录全 PASS=${allRecords}, 边界声明=${boundary}, 判据入口无 push=${noPush}`,
+        evidence: [`台账条目数=${Array.isArray(records.value) ? records.value.length : 0}`],
+      };
+    }));
+
+  const declaredChecks = items.length;
+  const evaluatedChecks = items.filter(
+    (item) => item.verdict === 'PASS' || item.verdict === 'FAIL',
+  ).length;
+  const unknownCount = items.filter((item) => item.verdict === 'UNKNOWN').length;
+  const allPass = items.every((item) => item.verdict === 'PASS');
+  const ok = allPass && declaredChecks === inv.F10_EXPECTED.regressionItems
+    && declaredChecks === evaluatedChecks && unknownCount === 0;
+  const verdict = ok ? 'PASS' : 'BLOCKED';
+  const recordPath = join(CHECKS_DIR, 'CHK-FINAL.json');
+  const record = {
+    checkId: 'CHK-FINAL',
+    feature: 'FINAL',
+    items,
+    declaredChecks,
+    evaluatedChecks,
+    unknownCount,
+    evidence: [
+      { path: 'checks/records.json', sha256: hashBuffer(readFileSync(RECORDS_PATH)) },
+      { path: 'README.md', sha256: hashBuffer(readFileSync(absPath('README.md'))) },
+      { path: 'src/generate.ts', sha256: hashBuffer(readFileSync(absPath('src/generate.ts'))) },
+    ],
+    verdict,
+    createdAt: '',
+  };
+  const stripCreatedAt = (value) => {
+    const copy = { ...value };
+    delete copy.createdAt;
+    return JSON.stringify(copy);
+  };
+  let previous = null;
+  if (existsSync(recordPath)) {
+    try {
+      previous = JSON.parse(readFileSync(recordPath, 'utf8'));
+    } catch {
+      previous = null;
+    }
+  }
+  record.createdAt = previous && stripCreatedAt(previous) === stripCreatedAt(record)
+    ? previous.createdAt
+    : new Date().toISOString();
+  writeJson(recordPath, record);
+  console.log(`[check] CHK-FINAL 九项收口: ${items.map((item) => `${item.id}=${item.verdict}`).join(' ')}`);
+  console.log(`[check] CHK-FINAL verdict=${verdict}`);
+  return {
+    ok,
+    problems: items.filter((item) => item.verdict !== 'PASS')
+      .map((item) => `${item.id}: ${item.actual}`),
+  };
+}
+
+/** F10：ZIP 导出与全链路联调的六条判据。 */
+async function f10Items() {
+  const items = [];
+  const project = await importTs('src/project.ts');
+  const featuresModule = await importTs('src/features.ts');
+  const generator = await importTs('src/generate.ts');
+  const zipModule = await importTs('src/zip.ts');
+  const history = await importTs('src/history.ts');
+  const inv = await importTs('tests/invariants.ts');
+  const baseline = engineeringBaseline('F10', [
+    'F01', 'F02', 'F03', 'F04', 'F05', 'F06', 'F07', 'F08', 'F09',
+  ]);
+  const title = inv.F06_EXPECTED.sampleTitle;
+  const config = project.normalize({ title }).config;
+  const features = featuresModule.recommendFeatures(title).features;
+  const result = generator.generate({ config, features });
+
+  items.push(await safeItem(
+    'F10-01',
+    'JSZip 解包后文件树与 generate() 一致、条目集合 == MANIFEST、每条目非空、无路径穿越',
+    'parser',
+    '压缩包条目集合 = 文件树 = 清单声明集合；内容非空；路径均安全',
+    async () => {
+      const buffer = await zipModule.buildZipBuffer(result.files);
+      const zip = await JSZip.loadAsync(buffer);
+      const names = Object.keys(zip.files).filter((name) => !zip.files[name].dir).sort();
+      const actualPaths = result.files.map((file) => file.path).sort();
+      const manifest = generator.findFile(result.files, 'MANIFEST.md') ?? '';
+      const declared = [...manifest.matchAll(/`([^`]+)`/g)].map((entry) => entry[1]).sort();
+      let nonEmpty = true;
+      for (const name of names) {
+        const content = await zip.files[name].async('string');
+        if (content.length === 0) {
+          nonEmpty = false;
+        }
+      }
+      const safe = names.every((name) => zipModule.isSafeDeliverablePath(name));
+      return {
+        ok: JSON.stringify(names) === JSON.stringify(actualPaths)
+          && JSON.stringify(names) === JSON.stringify(declared)
+          && nonEmpty && safe && names.length > 0,
+        actual: `ZIP条目=${names.length}, 文件树=${actualPaths.length}, 清单=${declared.length}, 非空=${nonEmpty}, 路径安全=${safe}`,
+        evidence: [`前五个条目: ${names.slice(0, 5).join(' | ')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F10-02',
+    'npm test 全绿 + npm run build + npm run lint 退出码 0',
+    'parser',
+    '工程侧机器证据：成功戳、dist 哈希一致、九个前序功能点全 PASS、测试文件齐备',
+    async () => ({
+      ok: baseline.ok,
+      actual: baseline.ok ? '全部条件成立' : '存在未成立条件',
+      evidence: baseline.evidence,
+    }),
+  ));
+
+  items.push(await safeItem(
+    'F10-03',
+    '本系统 README 每条命令 ∈ scripts ∪ {npm ci}，声明 Node 版本 == engines.node',
+    'parser',
+    '命令白名单无违规；README 精确包含 engines.node 值并如实注明未在 20 LTS 实跑',
+    async () => {
+      const readmeText = readText('README.md');
+      const commands = extractReadmeCommands(readmeText);
+      const pkg = safeJson('package.json').value;
+      const scripts = pkg?.scripts ?? {};
+      const allowed = new Set([...Object.keys(scripts), 'ci']);
+      const classified = commands.map(classifyCommand);
+      const bad = classified.filter((entry) => !entry.ok || !allowed.has(entry.script));
+      const engine = pkg?.engines?.node ?? '';
+      const declared = readmeText.includes(`\`${engine}\``);
+      const honest = readmeText.includes('未在 Node 20 LTS 上实跑验证')
+        && readmeText.includes('已在 Node v22.22.2');
+      const noInstall = !commands.some((command) => command.trim() === 'npm install');
+      return {
+        ok: bad.length === 0 && declared && honest && noInstall && engine.length > 0,
+        actual: `命令数=${commands.length}, 违规=${bad.map((entry) => entry.raw).join(' | ') || '无'}, engines.node=${engine}, 声明一致=${declared}, 如实注明=${honest}, 无 npm install=${noInstall}`,
+        evidence: [`允许脚本集合=${[...allowed].join(',')}`, `命令清单=${commands.join(' | ')}`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F10-04',
+    '端到端 {title} → 生成 → 快照 → ZIP 全链路无异常且无人工把关步骤',
+    'parser',
+    '纯函数调用链全部成功；main / ui 源码禁用词计数为 0',
+    async () => {
+      const snapshot = history.buildSnapshot(config, features, result.files, [], '2026-11-10T00:00:00.000Z');
+      const rebuilt = history.restore(snapshot);
+      const buffer = await zipModule.buildZipBuffer(rebuilt.files);
+      const zip = await JSZip.loadAsync(buffer);
+      const entries = Object.keys(zip.files).filter((name) => !zip.files[name].dir);
+      const forbidden = /confirm|review|approve|pending|确认|审核/gi;
+      const sources = ['src/main.tsx', 'src/ui.tsx']
+        .filter((rel) => exists(rel)).map((rel) => readText(rel));
+      const hits = sources.reduce(
+        (sum, text) => sum + (text.match(forbidden) ?? []).length, 0,
+      );
+      return {
+        ok: entries.length === result.files.length && hits === 0
+          && history.verifySnapshot(snapshot),
+        actual: `链路 ZIP 条目=${entries.length}/${result.files.length}, 禁用词命中=${hits}, 快照可重建=${history.verifySnapshot(snapshot)}`,
+        evidence: ['链路: normalize → recommendFeatures → generate → buildSnapshot → restore → buildZipBuffer → JSZip.loadAsync'],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F10-05',
+    '全部 10 份 AcceptanceRecord 齐备且均为 PASS',
+    'invariant',
+    '九个前序记录全 PASS + 十个功能点判据位齐备 + 本次 F10 判据全 PASS（收口 R-09 复核十份）',
+    async () => {
+      const records = safeJson('checks/records.json');
+      // 排除本点自身：上一次 BLOCKED 运行可能留下旧的 F10 记录，本轮会覆盖它；
+      // R-09 在写入后再复核完整十份记录。
+      const prior = Array.isArray(records.value)
+        ? records.value.filter((entry) => entry && entry.feature !== 'F10')
+        : [];
+      const priorOk = prior.length === 9 && prior.every((entry) => entry.verdict === 'PASS'
+        && entry.declaredChecks === entry.evaluatedChecks
+        && entry.unknownCount === 0);
+      const declaredFeatures = Object.keys(FEATURE_META).length + 1;
+      return {
+        ok: priorOk && declaredFeatures === inv.F10_EXPECTED.totalRecords,
+        actual: `前序记录=${prior.length} 全PASS=${priorOk}, 功能点判据位=${declaredFeatures}/${inv.F10_EXPECTED.totalRecords}`,
+        evidence: [`前序编号=${prior.map((entry) => entry.feature).join(',')}`],
+      };
+    },
+  ));
+
+  items.push(makeItem(
+    'F10-06',
+    '构建 + 全量回归通过（工程侧机器证据）',
+    'parser',
+    'build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备',
+    baseline.ok ? '全部条件成立' : '存在未成立条件',
+    baseline.ok ? 'PASS' : 'FAIL',
+    baseline.evidence,
+  ));
+
+  return items;
+}
+
 /** 已实现功能点的判据构造器表；后续功能点逐个登记，未登记一律 BLOCKED。 */
 const FEATURE_BUILDERS = Object.freeze({
   F02: f02Items,
@@ -2420,6 +2819,7 @@ const FEATURE_BUILDERS = Object.freeze({
   F07: f07Items,
   F08: f08Items,
   F09: f09Items,
+  F10: f10Items,
 });
 
 const argument = process.argv[2] ?? '';
@@ -2435,7 +2835,7 @@ if (argument.startsWith('--stamp=')) {
   runF01();
 } else if (Object.prototype.hasOwnProperty.call(FEATURE_BUILDERS, argument)) {
   const items = await FEATURE_BUILDERS[argument]();
-  runFeature(argument, items);
+  await runFeature(argument, items);
 } else {
   console.error(`[check] BLOCKED: 未知或未实现的判据目标 "${argument}"`);
   console.log('BLOCKED');

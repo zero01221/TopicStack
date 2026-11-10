@@ -227,10 +227,11 @@ export function FeatureEditor({ title, onFeaturesChange }: FeatureEditorProps): 
 /** 配置表单回调：把当前配置与功能点交给上层生成快照。 */
 export interface ConfigFormProps {
   readonly onGenerate?: (config: ProjectConfig, features: readonly FeaturePoint[]) => void;
+  readonly onDownload?: (config: ProjectConfig, features: readonly FeaturePoint[]) => void;
 }
 
 /** 配置表单：唯一必填项是题目，其余控件均有系统建议默认值。 */
-export function ConfigForm({ onGenerate }: ConfigFormProps = {}): ReactElement {
+export function ConfigForm({ onGenerate, onDownload }: ConfigFormProps = {}): ReactElement {
   const [currentFeatures, setCurrentFeatures] = useState<readonly FeaturePoint[]>([]);
   const [title, setTitle] = useState<string>('');
   const [stackChoice, setStackChoice] = useState<string>('');
@@ -286,6 +287,13 @@ export function ConfigForm({ onGenerate }: ConfigFormProps = {}): ReactElement {
   const handleGenerate = (): void => {
     if (outcome.config !== null && onGenerate) {
       onGenerate(outcome.config, currentFeatures);
+    }
+  };
+
+  /** 把当前配置与功能点交给上层，由上层生成 ZIP 并触发下载。 */
+  const handleDownload = (): void => {
+    if (outcome.config !== null && onDownload) {
+      onDownload(outcome.config, currentFeatures);
     }
   };
 
@@ -396,16 +404,28 @@ export function ConfigForm({ onGenerate }: ConfigFormProps = {}): ReactElement {
         </div>
       ) : null}
 
-      {outcome.config !== null && onGenerate ? (
-        <button
-          type="button"
-          data-action="save-snapshot"
-          onClick={handleGenerate}
-          className="mt-4 rounded bg-slate-800 px-4 py-2 text-sm text-white"
-        >
-          生成交付物并保存快照
-        </button>
-      ) : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {outcome.config !== null && onGenerate ? (
+          <button
+            type="button"
+            data-action="save-snapshot"
+            onClick={handleGenerate}
+            className="rounded bg-slate-800 px-4 py-2 text-sm text-white"
+          >
+            生成交付物并保存快照
+          </button>
+        ) : null}
+        {outcome.config !== null && onDownload ? (
+          <button
+            type="button"
+            data-action="download-zip"
+            onClick={handleDownload}
+            className="rounded border border-slate-400 px-4 py-2 text-sm text-slate-700"
+          >
+            下载当前交付物 ZIP
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

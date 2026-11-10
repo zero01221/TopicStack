@@ -1,0 +1,130 @@
+{
+  "checkId": "CHK-FINAL",
+  "feature": "FINAL",
+  "items": [
+    {
+      "id": "R-01",
+      "criterion": "工程侧构建 / 类型 / lint",
+      "anchor": "parser",
+      "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "锁文件 v3=true, 已安装快照=true",
+        "build/lint 成功戳与 dist 内容哈希一致=true",
+        "前序功能点回归记录全 PASS: F01,F02,F03,F04,F05,F06,F07,F08,F09 => true",
+        "本点测试文件齐备且无跳过标记: true"
+      ]
+    },
+    {
+      "id": "R-02",
+      "criterion": "固有属性断言集（期望值外置）",
+      "anchor": "invariant",
+      "expected": "invariants.ts 零 import、无派生配置 / 生成器引用、字面常量齐备",
+      "actual": "禁止引用=无, 零 import=true, 字面常量=true",
+      "verdict": "PASS",
+      "evidence": [
+        "扫描字符数=6256"
+      ]
+    },
+    {
+      "id": "R-03",
+      "criterion": "独立锚点 A：rawInput 原样出现",
+      "anchor": "rawInput",
+      "expected": "快照 note 与技术文档均含未经规范化的原始题目",
+      "actual": "note 含原文=true, 技术文档含原文=true",
+      "verdict": "PASS",
+      "evidence": [
+        "rawInput.title=\"基于 Java 的图书馆管理系统\""
+      ]
+    },
+    {
+      "id": "R-04",
+      "criterion": "独立锚点 B：五类通用解析器",
+      "anchor": "parser",
+      "expected": "JSON.parse / XML 标签配对 / SQL 词法 / TS 语法解析 / JSZip 解包 全部通过",
+      "actual": "JSON=true, XML=true, SQL=true, TS=true, ZIP=true",
+      "verdict": "PASS",
+      "evidence": [
+        "TS/TSX 文件=3",
+        "ZIP 条目=18/18"
+      ]
+    },
+    {
+      "id": "R-05",
+      "criterion": "确定性与同源一致性",
+      "anchor": "invariant",
+      "expected": "两次生成全等；README 版本取自 config；seed / 表单 / 认证字段一致",
+      "actual": "两次全等=true, 版本同源=true, 账号字段同源=true",
+      "verdict": "PASS",
+      "evidence": [
+        "版本清单=JDK 17 / Spring Boot 3.2.x / MySQL 8.0 / React 18 + Vite 5 / Node 20 LTS"
+      ]
+    },
+    {
+      "id": "R-06",
+      "criterion": "双栈覆盖与可扩展",
+      "anchor": "parser",
+      "expected": "java / python 后端文件不同；注册第三栈后可直接查表",
+      "actual": "双栈不同=true, 第三栈可扩展=true",
+      "verdict": "PASS",
+      "evidence": [
+        "注册表 2→3"
+      ]
+    },
+    {
+      "id": "R-07",
+      "criterion": "交付物完整性与 A12 / A11 规则",
+      "anchor": "invariant",
+      "expected": "MANIFEST 覆盖全部产物、A12 标待做且无产物、A11 勾选才生成",
+      "actual": "清单覆盖=true, A12待做=true, A11按勾选=true",
+      "verdict": "PASS",
+      "evidence": [
+        "清单条目=18",
+        "实际文件=18"
+      ]
+    },
+    {
+      "id": "R-08",
+      "criterion": "注释与讲解锚点",
+      "anchor": "invariant",
+      "expected": "每个源码文件的做什么 / 为什么计数覆盖结构标记；锚点 file 与 symbol 均存在",
+      "actual": "中文注释覆盖=true, 锚点有效=true",
+      "verdict": "PASS",
+      "evidence": [
+        "源码文件=8",
+        "锚点=frontend/src/api.ts#login, frontend/src/LoginForm.tsx#username, docs/技术文档.md#技术栈分析, backend/src/main/java/Application.java#start"
+      ]
+    },
+    {
+      "id": "R-09",
+      "criterion": "提交证据完整性、边界声明与无 push",
+      "anchor": "invariant",
+      "expected": "十份 AcceptanceRecord 全 PASS；README 含边界声明原句；判据入口不含 push 动作",
+      "actual": "十份记录全 PASS=true, 边界声明=true, 判据入口无 push=true",
+      "verdict": "PASS",
+      "evidence": [
+        "台账条目数=10"
+      ]
+    }
+  ],
+  "declaredChecks": 9,
+  "evaluatedChecks": 9,
+  "unknownCount": 0,
+  "evidence": [
+    {
+      "path": "checks/records.json",
+      "sha256": "a0c91cdb3484ff0759fb013b025990d924bcb3d7424b46a910f2c77943c291e3"
+    },
+    {
+      "path": "README.md",
+      "sha256": "4c251ce58dc0284afd2f4b18457e773dd134a936e9b869f16d654bb4f22a882b"
+    },
+    {
+      "path": "src/generate.ts",
+      "sha256": "d9a871e7c3bed7de903297756e691773918780da6692de3c93c63af2f932d2db"
+    }
+  ],
+  "verdict": "PASS",
+  "createdAt": "2026-11-10T04:34:26.427Z"
+}

@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import JSZip from 'jszip';
 import './index.css';
+import { downloadZip, makeZipFileName } from './zip';
 import { ConfigForm, HistoryPanel } from './ui';
 import type { FeaturePoint, ProjectConfig, Snapshot } from './types';
 import { generate } from './generate';
@@ -73,20 +73,19 @@ export function App(): ReactElement {
     setMessage(`${snapshot.note} ｜ 重建文件 ${rebuilt.files.length} 个`);
   };
 
-  /** 重新下载 ZIP：按快照重建后打包，文件名自动派生。 */
+  /** 重新下载 ZIP：按快照确定性重建后打包，文件名自动派生。 */
   const handleDownload = async (snapshot: Snapshot): Promise<void> => {
     const rebuilt = restore(snapshot);
-    const zip = new JSZip();
-    for (const file of rebuilt.files) {
-      zip.file(file.path, file.content);
-    }
-    const blob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${snapshot.version}.zip`;
-    link.click();
-    URL.revokeObjectURL(url);
+    await downloadZip(makeZipFileName(snapshot.version), rebuilt.files);
+  };
+
+  /** 下载当前配置对应的交付物 ZIP（不写历史快照）。 */
+  const handleDownloadCurrent = async (
+    config: ProjectConfig,
+    features: readonly FeaturePoint[],
+  ): Promise<void> => {
+    const result = generate({ config, features });
+    await downloadZip('TopicStack-latest.zip', result.files);
   };
 
   /** 删除：从持久化列表移除并刷新界面。 */
@@ -124,7 +123,7 @@ export function App(): ReactElement {
         <h2 className="text-lg font-medium text-slate-800">{active.label}</h2>
         <p className="mt-2 text-sm text-slate-600">{active.summary}</p>
         {current === 'input' ? (
-          <ConfigForm onGenerate={handleGenerate} />
+          <ConfigForm onGenerate={handleGenerate} onDownload={handleDownloadCurrent} />
         ) : current === 'history' ? (
           <HistoryPanel
             entries={snapshots}
