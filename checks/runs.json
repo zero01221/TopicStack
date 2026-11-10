@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "build": {
+    "ok": true,
+    "distHash": "89ed93a2fcaa5624c68eab715055ef0d0356a3d212740f1d255301ce14f9de52"
+  },
+  "lint": {
+    "ok": true
+  }
+}

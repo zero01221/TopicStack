@@ -1,0 +1,16 @@
+# 依赖目录与构建产物
+node_modules/
+dist/
+.vite/
+coverage/
+
+# 本地环境文件与日志
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
+
+# 编辑器配置
+.idea/
+.vscode/

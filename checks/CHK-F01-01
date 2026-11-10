@@ -1,0 +1,130 @@
+{
+  "checkId": "CHK-F01-01",
+  "feature": "F01",
+  "stack": "common",
+  "items": [
+    {
+      "id": "F01-01",
+      "criterion": "npm ci && npm run build && npm run lint 退出码 0（机器证据齐全且一致）",
+      "anchor": "parser",
+      "expected": "锁文件 v3 + 已安装快照 + build/lint 成功戳 + dist 内容哈希一致 + 构建脚本含类型检查",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "package.json JSON.parse: OK",
+        "package-lock.json lockfileVersion: 3",
+        "node_modules/.package-lock.json: OK（依赖已按锁文件安装）",
+        "checks/runs.json: build.ok=true, lint.ok=true",
+        "dist 内容哈希一致: YES",
+        "scripts.build: tsc --noEmit && vite build && node scripts/check.mjs --stamp=build",
+        "scripts.lint: node scripts/check.mjs --lint"
+      ]
+    },
+    {
+      "id": "F01-02",
+      "criterion": "静态断言 dist/index.html 含根容器且引用构建后 JS 资源",
+      "anchor": "parser",
+      "expected": "id=\"root\" + 至少 1 个 /assets/*.js 引用 + 资源文件确实存在",
+      "actual": "根容器=true, JS 资源数=1, 文件存在=true",
+      "verdict": "PASS",
+      "evidence": [
+        "dist/index.html 存在: true",
+        "根容器 id=\"root\": true",
+        "构建后 JS 资源: /assets/index-D6ktK11F.js",
+        "资源文件实际存在: true"
+      ]
+    },
+    {
+      "id": "F01-03",
+      "criterion": "JSON.parse(package.json) 成功且含 dev/build/test/lint/check 五个脚本",
+      "anchor": "parser",
+      "expected": "dev,build,test,lint,check",
+      "actual": "dev,build,test,lint,check",
+      "verdict": "PASS",
+      "evidence": [
+        "JSON.parse: OK",
+        "缺失脚本: 无"
+      ]
+    },
+    {
+      "id": "F01-04",
+      "criterion": "README 每条命令 ∈ scripts ∪ {npm ci, npm install}",
+      "anchor": "parser",
+      "expected": "全部 13 条命令可解析且脚本名 ∈ dev,build,test,lint,check,ci,install；含 npm ci 与 npm run dev",
+      "actual": "命令数=13, 违规=0, 含 ci/dev=YES",
+      "verdict": "PASS",
+      "evidence": [
+        "README 命令清单: npm ci | npm ci | npm run dev | npm install | npm run build | npm run test | npm run lint | npm run check -- F01 | npm ci | npm install | npm ci | npm run build | npm run check -- F01",
+        "允许脚本集合: dev, build, test, lint, check, ci, install",
+        "违规命令数: 0"
+      ]
+    },
+    {
+      "id": "F01-05",
+      "criterion": "npm run check -- F01 产出 AcceptanceRecord(PASS)，且应校验项数 == 已判定项数、未知项为 0",
+      "anchor": "invariant",
+      "expected": "declaredChecks=6 && evaluatedChecks=6 && unknownCount=0 && 全项 PASS",
+      "actual": "declared=6, evaluated=6, unknown=0, 基础项全判定=true",
+      "verdict": "PASS",
+      "evidence": [
+        "每条判据必须显式返回 PASS / FAIL",
+        "UNKNOWN、跳过、未执行一律计 FAIL",
+        "基础判据项数=5，加本项共 6 项"
+      ]
+    },
+    {
+      "id": "F01-06",
+      "criterion": "tests/invariants.ts 期望值均为字面常量（静态扫描不含派生配置 / 生成器引用）",
+      "anchor": "invariant",
+      "expected": "不含 ProjectConfig / generate(；无外部加载；含字面常量 ['dev', 'build', 'test', 'lint', 'check'] 与计数助手",
+      "actual": "期望值外置、无外部加载、字面常量与助手齐备",
+      "verdict": "PASS",
+      "evidence": [
+        "静态扫描目标: tests/invariants.ts (3638 字符)",
+        "禁止引用命中: 无",
+        "外部模块加载: false",
+        "字面常量数组存在: true",
+        "计数助手缺失: 无"
+      ]
+    }
+  ],
+  "declaredChecks": 6,
+  "evaluatedChecks": 6,
+  "unknownCount": 0,
+  "evidence": [
+    {
+      "path": "package.json",
+      "sha256": "4a2c6e2247fbc93a3779343c1771b4ffa6efcc898fc79ca56e9dc5f663d05c61"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+    },
+    {
+      "path": "dist/index.html",
+      "sha256": "4a6750dbbc4d039b03e69796c0ca9f253dbb7d9b97510ef16cb960abd7bf0faa"
+    },
+    {
+      "path": "checks/runs.json",
+      "sha256": "4f06ff6ebe5a8238c0b4f95faf95250a53b5a76bf44b2be66d4638637db4e420"
+    },
+    {
+      "path": "tests/invariants.ts",
+      "sha256": "307d920972783a847c4454b214d2112f8fa1b9da63699c686a6987c3a17e3067"
+    },
+    {
+      "path": "tests/F01.test.ts",
+      "sha256": "6de003a37c02c85e14b48313f11f63d05225ae369a472b92bfc374b87c5532a5"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "sha256": "1c4f6f82f4e75997538932d051a4ee580c749e47158452d8ba6cac051daf1aa3"
+    }
+  ],
+  "verdict": "PASS",
+  "createdAt": "2026-11-10T03:11:52.544Z"
+}
