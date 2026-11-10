@@ -16,5 +16,7 @@ export default defineConfig({
     // 判据测试全部是纯函数断言，无需 DOM 环境。
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // 串行执行测试文件：避免多个工作线程并发写同一份 SSR 转译缓存文件。
+    fileParallelism: false,
   },
 });

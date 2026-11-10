@@ -1025,9 +1025,157 @@ async function f02Items() {
   return items;
 }
 
+/** F03：配置输入层与 exception-based 默认通过的六条判据。 */
+async function f03Items() {
+  const items = [];
+  const project = await importTs('src/project.ts');
+  const types = await importTs('src/types.ts');
+  const mainSource = exists('src/main.tsx') ? readText('src/main.tsx') : '';
+  const uiSource = exists('src/ui.tsx') ? readText('src/ui.tsx') : '';
+  const baseline = engineeringBaseline('F03', ['F01', 'F02']);
+  const sampleTitle = '基于 Java 的图书馆管理系统';
+
+  items.push(await safeItem(
+    'F03-01',
+    '最小必填集合仅 title 且题目无建议默认值',
+    'invariant',
+    "必填字段恰为 ['title']；建议默认值表不含题目；表单中仅一个必填控件",
+    async () => {
+      const fields = [...project.REQUIRED_INPUT_FIELDS];
+      const hasTitleDefault = Object.prototype.hasOwnProperty.call(
+        types.SUGGESTED_DEFAULTS, 'title',
+      );
+      const requiredCount = (uiSource.match(/\brequired\b/g) ?? []).length;
+      return {
+        ok: JSON.stringify(fields) === '["title"]' && !hasTitleDefault && requiredCount === 1,
+        actual: `必填字段=${fields.join(',')}, 题目默认值=${hasTitleDefault}, 必填控件数=${requiredCount}`,
+        evidence: [
+          'REQUIRED_INPUT_FIELDS 来自 src/project.ts',
+          '建议默认值表来自 src/types.ts',
+          `src/ui.tsx 中 required 出现次数=${requiredCount}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F03-02',
+    '仅给 {title} 即可解析出合法完整配置',
+    'parser',
+    '配置全部必填字段可读，题目、技术栈与演示账号均非空',
+    async () => {
+      const result = project.normalize({ title: sampleTitle });
+      const missing = project.REQUIRED_CONFIG_FIELDS.filter(
+        (field) => result.config[field] === undefined || result.config[field] === null,
+      );
+      return {
+        ok: missing.length === 0
+          && result.config.title.length > 0
+          && result.config.stackId.length > 0
+          && result.config.auth.demoAccount.username.length > 0,
+        actual: `缺失字段=${missing.join(',') || '无'}, 技术栈=${result.config.stackId}, 自动默认值数=${result.adoptedDefaults.length}`,
+        evidence: ['输入只有 title，未传入任何版本、约束或勾选值'],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F03-03',
+    '步骤枚举不含任何人工把关态（无 confirm 计数）',
+    'invariant',
+    "步骤恰为 input/analysis/techdoc/deliverables/history；main 与 ui 中禁用词计数为 0",
+    async () => {
+      const stepMatch = mainSource.match(/type\s+Step\s*=\s*([^;]+);/);
+      const stepNames = stepMatch
+        ? [...stepMatch[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1])
+        : [];
+      const forbidden = /confirm|review|approve|pending|确认|审核/gi;
+      const mainHits = (mainSource.match(forbidden) ?? []).length;
+      const uiHits = (uiSource.match(forbidden) ?? []).length;
+      const expectedSteps = ['input', 'analysis', 'techdoc', 'deliverables', 'history'];
+      return {
+        ok: JSON.stringify(stepNames) === JSON.stringify(expectedSteps)
+          && mainHits === 0 && uiHits === 0,
+        actual: `步骤=${stepNames.join(',')}, main 禁用词=${mainHits}, ui 禁用词=${uiHits}`,
+        evidence: [
+          `src/main.tsx 步骤枚举: ${stepNames.join(' | ') || '无'}`,
+          `src/ui.tsx 字符数=${uiSource.length}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F03-04',
+    '版本号被覆盖后确实进入 config 并影响派生读取',
+    'parser',
+    '覆盖值出现在 versions、envBaseline.runtimeChecks 与 rawInput.versionInputs',
+    async () => {
+      const override = '用户自定义数据库版本';
+      const result = project.normalize({
+        title: sampleTitle,
+        versionInputs: { db: override },
+      });
+      const inVersions = result.config.versions.db === override;
+      const inDerived = result.config.envBaseline.runtimeChecks.some(
+        (item) => item.expected === override,
+      );
+      const inRaw = result.config.rawInput.versionInputs.db === override;
+      return {
+        ok: inVersions && inDerived && inRaw,
+        actual: `versions=${inVersions}, 派生读取=${inDerived}, 原始锚点=${inRaw}`,
+        evidence: [`覆盖值="${override}"`],
+      };
+    },
+  ));
+
+  items.push(await safeItem(
+    'F03-05',
+    '异常提示组件含「一键采用建议值 / 自动修复」，且存在默认值可零操作继续（DOM 结构断言）',
+    'invariant',
+    '提示条含 role=alert、两个一键修复按钮、data-action 标记；五个版本默认值齐备',
+    async () => {
+      const structure = {
+        fixLabel: uiSource.includes('一键采用建议值'),
+        autoFixLabel: uiSource.includes('自动修复'),
+        alertRole: uiSource.includes('role="alert"'),
+        adoptAction: uiSource.includes('data-action="adopt-suggested"'),
+        autoFixAction: uiSource.includes('data-action="auto-fix"'),
+        buttonType: uiSource.includes('type="button"'),
+      };
+      const versionValues = Object.values(types.SUGGESTED_DEFAULTS.versions);
+      const defaultsOk = versionValues.length === 5
+        && versionValues.every((value) => typeof value === 'string' && value.length > 0);
+      const zeroOpOk = project.normalize({ title: sampleTitle }).adoptedDefaults.length > 0;
+      const ok = Object.values(structure).every(Boolean) && defaultsOk && zeroOpOk;
+      return {
+        ok,
+        actual: `结构=${JSON.stringify(structure)}, 版本默认值齐备=${defaultsOk}, 零操作继续=${zeroOpOk}`,
+        evidence: [
+          `src/ui.tsx 静态 DOM 结构扫描字段: ${Object.keys(structure).join(', ')}`,
+          `版本默认值数量=${versionValues.length}`,
+        ],
+      };
+    },
+  ));
+
+  items.push(makeItem(
+    'F03-06',
+    '构建 + 全量回归通过（工程侧机器证据）',
+    'parser',
+    'build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备',
+    baseline.ok ? '全部条件成立' : '存在未成立条件',
+    baseline.ok ? 'PASS' : 'FAIL',
+    baseline.evidence,
+  ));
+
+  return items;
+}
+
 /** 已实现功能点的判据构造器表；后续功能点逐个登记，未登记一律 BLOCKED。 */
 const FEATURE_BUILDERS = Object.freeze({
   F02: f02Items,
+  F03: f03Items,
 });
 
 const argument = process.argv[2] ?? '';

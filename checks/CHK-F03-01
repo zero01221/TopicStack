@@ -1,0 +1,119 @@
+{
+  "checkId": "CHK-F03-01",
+  "feature": "F03",
+  "stack": "common",
+  "items": [
+    {
+      "id": "F03-01",
+      "criterion": "最小必填集合仅 title 且题目无建议默认值",
+      "anchor": "invariant",
+      "expected": "必填字段恰为 ['title']；建议默认值表不含题目；表单中仅一个必填控件",
+      "actual": "必填字段=title, 题目默认值=false, 必填控件数=1",
+      "verdict": "PASS",
+      "evidence": [
+        "REQUIRED_INPUT_FIELDS 来自 src/project.ts",
+        "建议默认值表来自 src/types.ts",
+        "src/ui.tsx 中 required 出现次数=1"
+      ]
+    },
+    {
+      "id": "F03-02",
+      "criterion": "仅给 {title} 即可解析出合法完整配置",
+      "anchor": "parser",
+      "expected": "配置全部必填字段可读，题目、技术栈与演示账号均非空",
+      "actual": "缺失字段=无, 技术栈=java, 自动默认值数=14",
+      "verdict": "PASS",
+      "evidence": [
+        "输入只有 title，未传入任何版本、约束或勾选值"
+      ]
+    },
+    {
+      "id": "F03-03",
+      "criterion": "步骤枚举不含任何人工把关态（无 confirm 计数）",
+      "anchor": "invariant",
+      "expected": "步骤恰为 input/analysis/techdoc/deliverables/history；main 与 ui 中禁用词计数为 0",
+      "actual": "步骤=input,analysis,techdoc,deliverables,history, main 禁用词=0, ui 禁用词=0",
+      "verdict": "PASS",
+      "evidence": [
+        "src/main.tsx 步骤枚举: input | analysis | techdoc | deliverables | history",
+        "src/ui.tsx 字符数=7779"
+      ]
+    },
+    {
+      "id": "F03-04",
+      "criterion": "版本号被覆盖后确实进入 config 并影响派生读取",
+      "anchor": "parser",
+      "expected": "覆盖值出现在 versions、envBaseline.runtimeChecks 与 rawInput.versionInputs",
+      "actual": "versions=true, 派生读取=true, 原始锚点=true",
+      "verdict": "PASS",
+      "evidence": [
+        "覆盖值=\"用户自定义数据库版本\""
+      ]
+    },
+    {
+      "id": "F03-05",
+      "criterion": "异常提示组件含「一键采用建议值 / 自动修复」，且存在默认值可零操作继续（DOM 结构断言）",
+      "anchor": "invariant",
+      "expected": "提示条含 role=alert、两个一键修复按钮、data-action 标记；五个版本默认值齐备",
+      "actual": "结构={\"fixLabel\":true,\"autoFixLabel\":true,\"alertRole\":true,\"adoptAction\":true,\"autoFixAction\":true,\"buttonType\":true}, 版本默认值齐备=true, 零操作继续=true",
+      "verdict": "PASS",
+      "evidence": [
+        "src/ui.tsx 静态 DOM 结构扫描字段: fixLabel, autoFixLabel, alertRole, adoptAction, autoFixAction, buttonType",
+        "版本默认值数量=5"
+      ]
+    },
+    {
+      "id": "F03-06",
+      "criterion": "构建 + 全量回归通过（工程侧机器证据）",
+      "anchor": "parser",
+      "expected": "build/lint 成功戳 + dist 哈希一致 + 前序记录全 PASS + 本点测试齐备",
+      "actual": "全部条件成立",
+      "verdict": "PASS",
+      "evidence": [
+        "锁文件 v3=true, 已安装快照=true",
+        "build/lint 成功戳与 dist 内容哈希一致=true",
+        "前序功能点回归记录全 PASS: F01,F02 => true",
+        "本点测试文件齐备且无跳过标记: true"
+      ]
+    }
+  ],
+  "declaredChecks": 6,
+  "evaluatedChecks": 6,
+  "unknownCount": 0,
+  "evidence": [
+    {
+      "path": "package.json",
+      "sha256": "4a2c6e2247fbc93a3779343c1771b4ffa6efcc898fc79ca56e9dc5f663d05c61"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3fde302e78b972e4061d0229dce4379eed94f8bd05865d15998d28ff433681bc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "03e1157a99ae686dd375f196c3e6d9b3899f2c33379cb3ead7c2c73995e394aa"
+    },
+    {
+      "path": "checks/runs.json",
+      "sha256": "143debc2f263251af9e7050b0c31969bfd550a41066211e6290750a7f1583672"
+    },
+    {
+      "path": "tests/invariants.ts",
+      "sha256": "91c27a360b8bfe84e0ad9a15d374be881b7cfa6cb6051e51e17ba323c21299e6"
+    },
+    {
+      "path": "tests/F03.test.ts",
+      "sha256": "c498210cb29bf21c1a1e264a34efd736f5e83251a145d5e1ca860b0f35739f67"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "sha256": "4266a05b1140e22fe4e48f04fccc71a83b252fad7231d13bd5b4d2aef6ec65e6"
+    },
+    {
+      "path": "src/types.ts",
+      "sha256": "f719807da9bcd847e9b944d2d3d69fc3d1f2a63a3a689b4c30828d8839993e82"
+    }
+  ],
+  "verdict": "PASS",
+  "createdAt": "2026-11-10T03:38:49.756Z"
+}

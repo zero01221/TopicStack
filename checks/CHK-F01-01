@@ -30,7 +30,7 @@
       "evidence": [
         "dist/index.html 存在: true",
         "根容器 id=\"root\": true",
-        "构建后 JS 资源: /assets/index-Bpbg6TO1.js",
+        "构建后 JS 资源: /assets/index-CPUTKpvR.js",
         "资源文件实际存在: true"
       ]
     },
@@ -106,11 +106,11 @@
     },
     {
       "path": "dist/index.html",
-      "sha256": "e42b4f4f7282dac1182a6d997e54dad9c5a6a18fac952222323c8d550ddfbd21"
+      "sha256": "b071ff5d24d1909ecdd0867763792694d44a415e63ec0374d6c5a62645e0410f"
     },
     {
       "path": "checks/runs.json",
-      "sha256": "2bb6520287eebefa08d413bd64cda95b0f1833377d9d8e0abb164cbbf5d65b6d"
+      "sha256": "143debc2f263251af9e7050b0c31969bfd550a41066211e6290750a7f1583672"
     },
     {
       "path": "tests/invariants.ts",
@@ -122,9 +122,9 @@
     },
     {
       "path": "scripts/check.mjs",
-      "sha256": "ea6e9b9194165b0631be193ead95e5118c6ad55e8eff416719fc8fc8074202f3"
+      "sha256": "4266a05b1140e22fe4e48f04fccc71a83b252fad7231d13bd5b4d2aef6ec65e6"
     }
   ],
   "verdict": "PASS",
-  "createdAt": "2026-11-10T03:32:48.275Z"
+  "createdAt": "2026-11-10T03:38:51.705Z"
 }

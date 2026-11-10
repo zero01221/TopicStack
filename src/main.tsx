@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
+import { ConfigForm } from './ui';
 
 /**
  * 极简步骤编排：只描述数据流向（录入 → 分析 → 文档 → 交付 → 历史）。
@@ -24,7 +25,7 @@ export const STEP_META: readonly StepMeta[] = [
   { id: 'history', label: '历史快照', summary: '查看与重新下载历史版本' },
 ];
 
-/** 应用占位外壳：F01 只提供可运行骨架，具体界面由后续功能点增量补齐。 */
+/** 应用外壳：录入步骤接入配置表单，其余步骤由后续功能点增量补齐。 */
 export function App(): ReactElement {
   const [current, setCurrent] = useState<Step>('input');
   const active: StepMeta = STEP_META.find((item) => item.id === current) ?? STEP_META[0];
@@ -56,9 +57,11 @@ export function App(): ReactElement {
       <section className="rounded border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-medium text-slate-800">{active.label}</h2>
         <p className="mt-2 text-sm text-slate-600">{active.summary}</p>
-        <p className="mt-4 text-xs text-slate-400">
-          当前为 F01 最小骨架，交互内容将在后续功能点逐步接入。
-        </p>
+        {current === 'input' ? (
+          <ConfigForm />
+        ) : (
+          <p className="mt-4 text-xs text-slate-400">该步骤的界面将在后续功能点逐步接入。</p>
+        )}
       </section>
     </main>
   );
